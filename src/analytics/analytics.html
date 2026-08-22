@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP Security — Usage Analytics</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#060809;--s1:#0b0f12;--s2:#111619;--s3:#181e23;--b:#1e262d;--b2:#243038;--tx:#e8f0f7;--t2:#7a9ab0;--t3:#3a5060;--g:#00e5a0;--r:#ff4757;--a:#ffb830;--bl:#4da6ff;--pu:#9b72ff}
+html,body{height:100%;font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx)}
+.main{max-width:1100px;margin:0 auto;padding:28px 24px}
+.pg-t{font-size:22px;font-weight:800;margin-bottom:3px}
+.pg-t span{color:var(--g)}
+.pg-s{font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-bottom:24px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.mc{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:14px;position:relative;overflow:hidden}
+.mc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--ac,var(--g)),transparent);opacity:.6}
+.mc.cg{--ac:var(--g)}.mc.cr{--ac:var(--r)}.mc.cb{--ac:var(--bl)}.mc.ca{--ac:var(--a)}.mc.cp{--ac:var(--pu)}
+.ml{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:7px}
+.mv{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:2px}
+.ms{font-size:10px;color:var(--t2)}
+.md{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-top:4px}
+.card{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:16px;margin-bottom:12px}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--b)}
+.ct{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t2)}
+.ca{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+.cw{position:relative;height:180px}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);padding:0 0 7px;text-align:left;border-bottom:1px solid var(--b)}
+.tbl td{padding:7px 0;border-bottom:1px solid var(--b);color:var(--t2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{color:var(--tx)}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:10px}
+.badge{display:inline-flex;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px}
+.bg{background:rgba(0,229,160,.1);color:var(--g);border:1px solid rgba(0,229,160,.18)}
+.br{background:rgba(255,71,87,.1);color:var(--r);border:1px solid rgba(255,71,87,.18)}
+.ba{background:rgba(255,184,48,.1);color:var(--a);border:1px solid rgba(255,184,48,.18)}
+.bi{background:rgba(77,166,255,.1);color:var(--bl);border:1px solid rgba(77,166,255,.18)}
+.bp{background:rgba(155,114,255,.1);color:var(--pu);border:1px solid rgba(155,114,255,.18)}
+.how-box{background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:16px;margin-bottom:12px}
+.how-title{font-size:13px;font-weight:700;color:var(--tx);margin-bottom:8px}
+.how-body{font-size:12px;color:var(--t2);line-height:1.65}
+.code-block{background:var(--s3);border-radius:6px;padding:12px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--g);margin:8px 0;overflow-x:auto;white-space:pre}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--b)}
+.step-row:last-child{border-bottom:none}
+.step-n{width:24px;height:24px;border-radius:50%;background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.2);color:var(--g);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-b{flex:1}
+.step-t{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:2px}
+.step-d{font-size:11px;color:var(--t3);line-height:1.5}
+.check-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--b)}
+.check-row:last-child{border-bottom:none}
+.check-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.empty{text-align:center;padding:20px;color:var(--t3);font-size:11px}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="main">
+
+<div class="pg-t">Usage <span>Analytics</span></div>
+<div class="pg-s">how your agents use the gateway · integration health · tool patterns</div>
+
+<!-- What is this? -->
+<div class="how-box" id="product-explainer">
+  <div class="how-title">What is MCP Security Gateway?</div>
+  <div class="how-body">A zero-trust security proxy that sits between your AI agents and your MCP tool servers. Every tool call is authenticated, inspected for attacks, policy-checked, and logged before reaching your infrastructure.</div>
+  <div style="display:flex;align-items:center;gap:12px;margin-top:10px;font-size:11px;font-family:'IBM Plex Mono',monospace">
+    <span style="color:var(--t3)">Before:</span>
+    <span style="color:var(--r)">AI Agent → MCP Tool Server (unprotected)</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;margin-top:4px;font-size:11px;font-family:'IBM Plex Mono',monospace">
+    <span style="color:var(--t3)">After:</span>
+    <span style="color:var(--g)">AI Agent → Security Gateway → MCP Tool Server</span>
+  </div>
+</div>
+
+<!-- Onboarding checklist -->
+<div class="card" id="onboarding-card">
+  <div class="ch"><span class="ct">Getting started</span><span class="ca" id="onboard-pct">0% complete</span></div>
+  <div id="checklist">
+    <div class="check-row"><div class="check-dot" style="background:var(--g)"></div><div style="flex:1;font-size:12px;color:var(--tx)">Account created</div><span class="badge bg">done</span></div>
+    <div class="check-row" id="ck-agent"><div class="check-dot" style="background:var(--t3)"></div><div style="flex:1;font-size:12px;color:var(--t2)">Create your first agent token</div><span class="badge bi">pending</span></div>
+    <div class="check-row" id="ck-call"><div class="check-dot" style="background:var(--t3)"></div><div style="flex:1;font-size:12px;color:var(--t2)">Make your first tool call</div><span class="badge bi">pending</span></div>
+    <div class="check-row" id="ck-alert"><div class="check-dot" style="background:var(--t3)"></div><div style="flex:1;font-size:12px;color:var(--t2)">Configure a Slack alert rule</div><span class="badge bi">pending</span></div>
+    <div class="check-row" id="ck-oidc"><div class="check-dot" style="background:var(--t3)"></div><div style="flex:1;font-size:12px;color:var(--t2)">Enable OAuth 2.1 / OIDC auth</div><span class="badge bi">optional</span></div>
+  </div>
+</div>
+
+<!-- Usage metrics -->
+<div class="g4" id="usage-metrics">
+  <div class="mc cg"><div class="ml">Total calls (7d)</div><div class="mv" style="color:var(--g)">—</div><div class="ms">all agents</div></div>
+  <div class="mc cr"><div class="ml">Blocked (7d)</div><div class="mv" style="color:var(--r)">—</div><div class="ms">denial rate</div></div>
+  <div class="mc cb"><div class="ml">Active agents</div><div class="mv" style="color:var(--bl)">—</div><div class="ms">last 7 days</div></div>
+  <div class="mc ca"><div class="ml">Avg latency</div><div class="mv" style="color:var(--a)">—</div><div class="ms">gateway overhead</div></div>
+</div>
+
+<!-- Charts -->
+<div class="g2">
+  <div class="card"><div class="ch"><span class="ct">Daily API calls</span><span class="ca">last 7 days</span></div><div class="cw"><canvas id="calls-chart"></canvas></div></div>
+  <div class="card"><div class="ch"><span class="ct">Latency (p50/p95/p99)</span><span class="ca">last 24h</span></div><div class="cw"><canvas id="lat-chart"></canvas></div></div>
+</div>
+
+<!-- How they integrate -->
+<div class="g2">
+  <div class="card">
+    <div class="ch"><span class="ct">How you are integrating</span></div>
+    <div id="integration-methods"><div class="empty">Loading...</div></div>
+    <div id="integration-rec" style="margin-top:10px;padding:10px;background:rgba(0,229,160,.06);border-radius:6px;font-size:11px;color:var(--t2);display:none"></div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">Quick integration guide</span></div>
+    <div class="step-row"><div class="step-n">1</div><div class="step-b"><div class="step-t">Install the SDK</div><div class="step-d">npm install @mcp-security/sdk</div></div></div>
+    <div class="step-row"><div class="step-n">2</div><div class="step-b"><div class="step-t">Initialize the client</div><div class="step-d" style="font-family:'IBM Plex Mono',monospace;color:var(--g)">const client = new McpGatewayClient({<br>&nbsp;&nbsp;gatewayUrl: 'https://your-gateway',<br>&nbsp;&nbsp;token: 'your-token'<br>});</div></div></div>
+    <div class="step-row"><div class="step-n">3</div><div class="step-b"><div class="step-t">Call tools securely</div><div class="step-d" style="font-family:'IBM Plex Mono',monospace;color:var(--g)">const r = await client.callTool(<br>&nbsp;&nbsp;'query_database',<br>&nbsp;&nbsp;{ query: 'SELECT...' }<br>);</div></div></div>
+    <div class="step-row"><div class="step-n">4</div><div class="step-b"><div class="step-t">All calls secured automatically</div><div class="step-d">Auth + injection scan + RBAC + audit log — all handled by the gateway.</div></div></div>
+  </div>
+</div>
+
+<!-- Tool usage -->
+<div class="card">
+  <div class="ch"><span class="ct">Tool call patterns</span><span class="ca">which tools your agents use most</span></div>
+  <table class="tbl" id="tools-tbl">
+    <thead><tr><th>Tool name</th><th>Total calls</th><th>Allowed</th><th>Denied</th><th>Denial %</th><th>Avg latency</th><th>Last used</th></tr></thead>
+    <tbody id="tools-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+<!-- Agent health -->
+<div class="card">
+  <div class="ch"><span class="ct">Agent health</span><span class="ca">active · dormant · new</span></div>
+  <div class="g3" id="agent-summary" style="margin-bottom:12px">
+    <div class="mc cg"><div class="ml">Active</div><div class="mv" style="color:var(--g)">—</div><div class="ms">called in last 24h</div></div>
+    <div class="mc ca"><div class="ml">Dormant</div><div class="mv" style="color:var(--a)">—</div><div class="ms">no calls in 7+ days</div></div>
+    <div class="mc cb"><div class="ml">New</div><div class="mv" style="color:var(--bl)">—</div><div class="ms">created today</div></div>
+  </div>
+  <table class="tbl" id="agents-tbl">
+    <thead><tr><th>Agent ID</th><th>Status</th><th>Total calls</th><th>Denials</th><th>Avg latency</th><th>First seen</th><th>Last active</th></tr></thead>
+    <tbody id="agents-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+</div>
+
+<script>
+Chart.defaults.color='#3a5060';Chart.defaults.font.family="'IBM Plex Mono',monospace";Chart.defaults.font.size=9;
+
+async function fj(url){try{const r=await fetch(url);if(!r.ok)throw 0;return await r.json()}catch{return null}}
+
+async function load(){
+  const [usage,integration,tools,agents,latency]=await Promise.all([
+    fj('/api/analytics/usage?days=7'),
+    fj('/api/analytics/integration'),
+    fj('/api/analytics/tools'),
+    fj('/api/analytics/agents'),
+    fj('/api/analytics/latency'),
+  ]);
+
+  if(usage){
+    const days=Object.entries(usage.daily||{}).sort(([a],[b])=>a.localeCompare(b));
+    const labels=days.map(([d])=>d.slice(5));
+    const calls=days.map(([,v])=>v.calls||0);
+    const denials=days.map(([,v])=>v.denials||0);
+    const total=calls.reduce((a,b)=>a+b,0);
+    const totalDenied=denials.reduce((a,b)=>a+b,0);
+    const avgMs=days.length?Math.round(days.reduce((a,[,v])=>a+(v.avgLatencyMs||0),0)/days.length):0;
+    document.getElementById('usage-metrics').innerHTML=`
+      <div class="mc cg"><div class="ml">Total calls (7d)</div><div class="mv" style="color:var(--g)">${total.toLocaleString()}</div><div class="ms">all agents</div></div>
+      <div class="mc cr"><div class="ml">Blocked (7d)</div><div class="mv" style="color:var(--r)">${totalDenied}</div><div class="ms">${total>0?Math.round((totalDenied/total)*100):0}% denial rate</div></div>
+      <div class="mc cb"><div class="ml">Days tracked</div><div class="mv" style="color:var(--bl)">${days.length}</div><div class="ms">with activity</div></div>
+      <div class="mc ca"><div class="ml">Avg latency</div><div class="mv" style="color:var(--a)">${avgMs}<span style="font-size:14px;font-weight:500">ms</span></div><div class="ms">gateway overhead</div></div>`;
+    new Chart(document.getElementById('calls-chart'),{type:'bar',data:{labels,datasets:[
+      {label:'Calls',data:calls,backgroundColor:'rgba(0,229,160,.5)',borderRadius:2},
+      {label:'Denied',data:denials,backgroundColor:'rgba(255,71,87,.5)',borderRadius:2},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9ab0',boxWidth:8,padding:12}}},scales:{x:{ticks:{color:'#3a5060'},grid:{display:false}},y:{ticks:{color:'#3a5060'},grid:{color:'rgba(255,255,255,.02)'}}}}});
+  }
+
+  if(latency?.hourly?.length){
+    const h=latency.hourly;
+    const labels=h.map(x=>new Date(x.hour).getHours()+':00');
+    new Chart(document.getElementById('lat-chart'),{type:'line',data:{labels,datasets:[
+      {label:'p50',data:h.map(x=>x.avg_ms),borderColor:'#00e5a0',tension:.3,pointRadius:0,borderWidth:1.5},
+      {label:'p95',data:h.map(x=>x.p95_ms),borderColor:'#ffb830',tension:.3,pointRadius:0,borderWidth:1.5},
+      {label:'p99',data:h.map(x=>x.p99_ms),borderColor:'#ff4757',tension:.3,pointRadius:0,borderWidth:1.5},
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#7a9ab0',boxWidth:7,padding:12}}},scales:{x:{ticks:{color:'#3a5060'},grid:{display:false}},y:{ticks:{color:'#3a5060',callback:v=>v+'ms'},grid:{color:'rgba(255,255,255,.02)'}}}}});
+  }
+
+  if(integration){
+    const methods=integration.integrationMethods||[];
+    document.getElementById('integration-methods').innerHTML=methods.length?
+      methods.map(m=>{
+        const isSDK=m.integration_method?.startsWith('sdk:');
+        const isCurl=m.integration_method==='manual:curl';
+        return`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--b)">
+          <div style="flex:1;font-size:12px;color:var(--t2);font-family:'IBM Plex Mono',monospace">${m.integration_method}</div>
+          <span class="mono" style="color:var(--tx)">${parseInt(m.calls||0).toLocaleString()} calls</span>
+          <span class="badge ${isSDK?'bg':isCurl?'ba':'bi'}">${isSDK?'recommended':isCurl?'manual':'http'}</span>
+        </div>`;}).join('') :
+      '<div class="empty">No integration data yet — make your first API call</div>';
+    if(integration.recommendation){
+      const rec=document.getElementById('integration-rec');
+      rec.textContent=integration.recommendation;
+      rec.style.display='block';
+    }
+  }
+
+  if(tools?.tools?.length){
+    document.getElementById('tools-body').innerHTML=tools.tools.map(t=>`<tr>
+      <td style="color:var(--bl);font-family:'IBM Plex Mono',monospace">${t.tool_name}</td>
+      <td style="font-weight:500;color:var(--tx)">${parseInt(t.total_calls).toLocaleString()}</td>
+      <td style="color:var(--g)">${parseInt(t.allowed).toLocaleString()}</td>
+      <td style="color:${parseInt(t.denied)>0?'var(--r)':'var(--t2)'}">${parseInt(t.denied).toLocaleString()}</td>
+      <td class="mono" style="color:${parseFloat(t.denial_pct)>20?'var(--r)':parseFloat(t.denial_pct)>5?'var(--a)':'var(--t2)'}">${t.denial_pct||0}%</td>
+      <td class="mono">${t.avg_ms||'—'}${t.avg_ms?'ms':''}</td>
+      <td class="mono" style="color:var(--t3)">${t.last_used?new Date(t.last_used).toLocaleDateString():'—'}</td>
+    </tr>`).join('');
+  } else document.getElementById('tools-body').innerHTML='<tr><td colspan="7" class="empty">No tool calls recorded yet</td></tr>';
+
+  if(agents){
+    const s=agents.summary||{};
+    document.getElementById('agent-summary').innerHTML=`
+      <div class="mc cg"><div class="ml">Active</div><div class="mv" style="color:var(--g)">${s.active||0}</div><div class="ms">last 24h</div></div>
+      <div class="mc ca"><div class="ml">Dormant</div><div class="mv" style="color:var(--a)">${s.dormant||0}</div><div class="ms">7+ days silent</div></div>
+      <div class="mc cb"><div class="ml">New</div><div class="mv" style="color:var(--bl)">${s.new||0}</div><div class="ms">created today</div></div>`;
+    const ag=agents.agents||[];
+    document.getElementById('agents-body').innerHTML=ag.length?ag.map(a=>`<tr>
+      <td class="mono" style="color:var(--bl)">${String(a.agent_id).substring(0,20)}…</td>
+      <td><span class="badge ${a.status==='active'?'bg':a.status==='new'?'bi':'ba'}">${a.status}</span></td>
+      <td>${parseInt(a.total_calls).toLocaleString()}</td>
+      <td style="color:${parseInt(a.denials)>0?'var(--r)':'var(--t2)'}">${a.denials||0}</td>
+      <td class="mono">${a.avg_ms||'—'}${a.avg_ms?'ms':''}</td>
+      <td class="mono" style="color:var(--t3)">${new Date(a.created).toLocaleDateString()}</td>
+      <td class="mono" style="color:var(--t3)">${new Date(a.last_active).toLocaleTimeString()}</td>
+    </tr>`).join(''):'<tr><td colspan="7" class="empty">No agents recorded yet</td></tr>';
+  }
+}
+
+load();
+</script>
+</body>
+</html>

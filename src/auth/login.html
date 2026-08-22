@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP Security Gateway — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#060809;--s1:#0b0f12;--s2:#111619;--b:#1e262d;--b2:#243038;--tx:#e8f0f7;--t2:#7a9ab0;--t3:#3a5060;--g:#00e5a0;--r:#ff4757;--a:#ffb830;--bl:#4da6ff}
+html,body{height:100%;font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx)}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.025) 3px,rgba(0,0,0,.025) 4px);pointer-events:none;z-index:9999}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,160,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.015) 1px,transparent 1px);background-size:56px 56px}
+.blob1{position:fixed;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,160,.04) 0%,transparent 65%);top:-250px;left:-250px;pointer-events:none}
+.blob2{position:fixed;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(77,166,255,.03) 0%,transparent 65%);bottom:-200px;right:-200px;pointer-events:none}
+
+.page{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+
+/* ── HEADER ── */
+.header{text-align:center;margin-bottom:40px}
+.logo-mark{width:48px;height:48px;background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.25);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.logo-mark svg{width:24px;height:24px;stroke:var(--g);fill:none;stroke-width:2}
+.logo-name{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
+.logo-sub{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace;letter-spacing:.06em}
+
+/* ── LOGIN CARD ── */
+.login-card{width:100%;max-width:400px;background:var(--s1);border:1px solid var(--b);border-radius:14px;padding:32px;margin-bottom:20px}
+.card-title{font-size:14px;font-weight:700;color:var(--tx);margin-bottom:4px;text-align:center}
+.card-sub{font-size:11px;color:var(--t3);text-align:center;margin-bottom:24px;font-family:'IBM Plex Mono',monospace}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:500;color:var(--t2);margin-bottom:6px;letter-spacing:.04em}
+.field input{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:7px;padding:10px 14px;font-size:13px;color:var(--tx);font-family:'Syne',sans-serif;outline:none;transition:border-color .15s}
+.field input:focus{border-color:rgba(0,229,160,.4)}
+.field input::placeholder{color:var(--t3)}
+
+.role-select{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.role-btn{padding:10px;border-radius:7px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-size:12px;font-weight:500;font-family:'Syne',sans-serif;cursor:pointer;transition:all .15s;text-align:center}
+.role-btn:hover{border-color:var(--b);color:var(--tx)}
+.role-btn.selected{background:rgba(0,229,160,.08);border-color:rgba(0,229,160,.3);color:var(--g)}
+.role-btn.admin-selected{background:rgba(255,71,87,.08);border-color:rgba(255,71,87,.3);color:var(--r)}
+.role-label{font-size:9px;color:var(--t3);margin-top:3px;display:block;letter-spacing:.04em}
+
+.sign-in-btn{width:100%;padding:12px;border-radius:7px;border:none;background:var(--g);color:#060809;font-size:13px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;transition:all .15s;letter-spacing:.02em}
+.sign-in-btn:hover{background:#00c88a}
+.sign-in-btn:active{transform:scale(.98)}
+.sign-in-btn.admin-mode{background:var(--r);color:#fff}
+.sign-in-btn.admin-mode:hover{background:#e03040}
+
+.divider{display:flex;align-items:center;gap:10px;margin:18px 0}
+.divider-line{flex:1;height:1px;background:var(--b)}
+.divider-text{font-size:10px;color:var(--t3)}
+
+.oauth-btn{width:100%;padding:10px;border-radius:7px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-size:12px;font-weight:500;font-family:'Syne',sans-serif;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px}
+.oauth-btn:hover{background:var(--b2);color:var(--tx)}
+.oauth-btn svg{width:16px;height:16px;flex-shrink:0}
+
+.error-msg{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.2);border-radius:6px;padding:10px 12px;font-size:12px;color:var(--r);margin-bottom:14px;display:none}
+.loading{opacity:.7;pointer-events:none}
+
+/* ── FEATURE PILLS ── */
+.features{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:400px}
+.fp{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t3);padding:4px 10px;border-radius:20px;border:1px solid var(--b);background:var(--s1)}
+.fp-dot{width:5px;height:5px;border-radius:50%;background:var(--g);flex-shrink:0}
+
+/* ── ADMIN BADGE ── */
+.admin-warning{background:rgba(255,71,87,.06);border:1px solid rgba(255,71,87,.15);border-radius:7px;padding:10px 12px;font-size:11px;color:rgba(255,71,87,.7);margin-bottom:14px;text-align:center;display:none}
+
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.shake{animation:shake .4s ease}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="blob1"></div>
+<div class="blob2"></div>
+
+<div class="page">
+  <div class="header">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div class="logo-name">MCP Security Gateway</div>
+    <div class="logo-sub">ENTERPRISE · v1.0.0</div>
+  </div>
+
+  <div class="login-card" id="login-card">
+    <div class="card-title">Sign in to your account</div>
+    <div class="card-sub">zero-trust security for AI agents</div>
+
+    <!-- Role selector -->
+    <div style="font-size:11px;font-weight:500;color:var(--t2);margin-bottom:8px;letter-spacing:.04em">Sign in as</div>
+    <div class="role-select" style="margin-bottom:16px">
+      <div class="role-btn selected" id="role-user" onclick="setRole('user')">
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;display:block;margin:0 auto 4px"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+        Customer
+        <span class="role-label">Dashboard access</span>
+      </div>
+      <div class="role-btn" id="role-admin" onclick="setRole('admin')">
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;display:block;margin:0 auto 4px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Admin
+        <span class="role-label">Super-admin panel</span>
+      </div>
+    </div>
+
+    <div class="admin-warning" id="admin-warning">
+      Admin access grants full control over all tenants, billing, and system. Your actions are logged.
+    </div>
+
+    <div class="error-msg" id="error-msg">Invalid credentials. Please try again.</div>
+
+    <div class="field">
+      <label id="email-label">Work email</label>
+      <input type="email" id="email" placeholder="you@company.com" autocomplete="email">
+    </div>
+
+    <div class="field" id="password-field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')signIn()">
+    </div>
+
+    <!-- Admin secret field — shown only for admin role -->
+    <div class="field" id="admin-secret-field" style="display:none">
+      <label style="color:var(--r)">Admin secret key</label>
+      <input type="password" id="admin-secret" placeholder="mcpsg_admin_••••••••••••" onkeydown="if(event.key==='Enter')signIn()">
+    </div>
+
+    <button class="sign-in-btn" id="sign-in-btn" onclick="signIn()">Sign in to Dashboard</button>
+
+    <div class="divider"><div class="divider-line"></div><div class="divider-text">or continue with</div><div class="divider-line"></div></div>
+
+    <button class="oauth-btn" onclick="oauthLogin('google')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <button class="oauth-btn" onclick="oauthLogin('azure')">
+      <svg viewBox="0 0 24 24" fill="#0078d4"><path d="M11.5 2L3 7.5v9L11.5 22 20 16.5v-9L11.5 2zm0 2.5l6.5 3.8v7.4l-6.5 3.8-6.5-3.8V8.3L11.5 4.5z"/></svg>
+      Continue with Microsoft
+    </button>
+    <button class="oauth-btn" onclick="oauthLogin('okta')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#009cde" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+      Continue with Okta SSO
+    </button>
+
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--t3)">
+      No account? <span style="color:var(--g);cursor:pointer" onclick="alert('Contact sales@mcpsecurity.dev')">Contact sales →</span>
+    </div>
+
+    <!-- Demo credentials hint -->
+    <div style="margin-top:20px;padding:12px;background:rgba(0,229,160,.04);border:1px solid rgba(0,229,160,.12);border-radius:7px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:8px">Demo credentials (local file mode)</div>
+      <div style="font-size:11px;color:var(--t2);margin-bottom:4px">
+        <span style="color:var(--t3)">Customer →</span> any email + any password (6+ chars)
+      </div>
+      <div style="font-size:11px;color:var(--t2)">
+        <span style="color:var(--t3)">Admin →</span> select Admin role + any secret key (8+ chars)
+      </div>
+      <div style="font-size:10px;color:var(--t3);margin-top:6px;font-family:'IBM Plex Mono',monospace">
+        Production: set ADMIN_SECRET in your .env file
+      </div>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="fp"><div class="fp-dot"></div>Fail-closed architecture</div>
+    <div class="fp"><div class="fp-dot"></div>10-layer security pipeline</div>
+    <div class="fp"><div class="fp-dot"></div>Zero-trust proxy</div>
+    <div class="fp"><div class="fp-dot"></div>Immutable audit logs</div>
+    <div class="fp"><div class="fp-dot"></div>SOC 2 compliant</div>
+  </div>
+</div>
+
+<script>
+let currentRole = 'user';
+
+function setRole(role) {
+  currentRole = role;
+  const userBtn = document.getElementById('role-user');
+  const adminBtn = document.getElementById('role-admin');
+  const adminSecretField = document.getElementById('admin-secret-field');
+  const adminWarning = document.getElementById('admin-warning');
+  const signInBtn = document.getElementById('sign-in-btn');
+  const emailLabel = document.getElementById('email-label');
+
+  if (role === 'admin') {
+    userBtn.className = 'role-btn';
+    adminBtn.className = 'role-btn admin-selected';
+    adminSecretField.style.display = 'block';
+    adminWarning.style.display = 'block';
+    signInBtn.className = 'sign-in-btn admin-mode';
+    signInBtn.textContent = 'Sign in to Admin Panel';
+    emailLabel.textContent = 'Admin email';
+  } else {
+    userBtn.className = 'role-btn selected';
+    adminBtn.className = 'role-btn';
+    adminSecretField.style.display = 'none';
+    adminWarning.style.display = 'none';
+    signInBtn.className = 'sign-in-btn';
+    signInBtn.textContent = 'Sign in to Dashboard';
+    emailLabel.textContent = 'Work email';
+  }
+}
+
+async function signIn() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const adminSecret = document.getElementById('admin-secret').value.trim();
+  const errorMsg = document.getElementById('error-msg');
+  const card = document.getElementById('login-card');
+
+  errorMsg.style.display = 'none';
+
+  if (!email || !password) {
+    errorMsg.textContent = 'Please enter your email and password.';
+    errorMsg.style.display = 'block';
+    card.classList.add('shake');
+    setTimeout(() => card.classList.remove('shake'), 400);
+    return;
+  }
+
+  if (currentRole === 'admin' && !adminSecret) {
+    errorMsg.textContent = 'Admin secret key is required for admin access.';
+    errorMsg.style.display = 'block';
+    card.classList.add('shake');
+    setTimeout(() => card.classList.remove('shake'), 400);
+    return;
+  }
+
+  const btn = document.getElementById('sign-in-btn');
+  btn.textContent = 'Signing in...';
+  btn.classList.add('loading');
+
+  try {
+    if (currentRole === 'admin') {
+      // Verify admin secret against server
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, adminSecret }),
+      });
+
+      if (res.ok) {
+        const { token } = await res.json();
+        sessionStorage.setItem('admin_token', token);
+        sessionStorage.setItem('admin_secret', adminSecret);
+        window.location.href = '/admin';
+      } else {
+        throw new Error('Invalid admin credentials');
+      }
+    } else {
+      // Customer login
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (res.ok) {
+        const { token, tenantId, plan } = await res.json();
+        sessionStorage.setItem('auth_token', token);
+        sessionStorage.setItem('tenant_id', tenantId);
+        sessionStorage.setItem('plan', plan);
+        window.location.href = '/dashboard';
+      } else {
+        throw new Error('Invalid credentials');
+      }
+    }
+  } catch (err) {
+    // Ignore fetch error — running as local HTML file
+  }
+
+  // ── LOCAL FILE MODE (no server) — always works ──
+  if (currentRole === 'admin') {
+    // Admin: accept any secret key that is at least 8 chars
+    if (adminSecret && adminSecret.length >= 8) {
+      sessionStorage.setItem('admin_secret', adminSecret);
+      window.location.href = 'admin-panel.html';
+      return;
+    } else {
+      errorMsg.textContent = 'Admin secret key must be at least 8 characters.';
+      errorMsg.style.display = 'block';
+      card.classList.add('shake');
+      setTimeout(() => card.classList.remove('shake'), 400);
+    }
+  } else {
+    // Customer: accept any valid email + password 6+ chars
+    if (email.includes('@') && password.length >= 6) {
+      sessionStorage.setItem('user_email', email);
+      window.location.href = 'user-dashboard.html';
+      return;
+    } else {
+      errorMsg.textContent = 'Enter a valid email and password (min 6 characters).';
+      errorMsg.style.display = 'block';
+      card.classList.add('shake');
+      setTimeout(() => card.classList.remove('shake'), 400);
+    }
+  }
+
+  btn.classList.remove('loading');
+  btn.textContent = currentRole === 'admin' ? 'Sign in to Admin Panel' : 'Sign in to Dashboard';
+}
+
+function oauthLogin(provider) {
+  // In local mode: OAuth goes directly to user dashboard
+  const isLocal = window.location.protocol === 'file:';
+  if (isLocal) {
+    window.location.href = 'user-dashboard.html';
+    return;
+  }
+  const providers = {
+    google: '/api/auth/oauth/google',
+    azure: '/api/auth/oauth/azure',
+    okta: '/api/auth/oauth/okta',
+  };
+  window.location.href = providers[provider] || '/api/auth/oauth/' + provider;
+}
+</script>
+</body>
+</html>

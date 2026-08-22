@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "hypher_ai"
+version = "2.0.0"
+description = "Python SDK for MCP Security Gateway — zero-trust proxy for AI agents"
+readme = "README.md"
+license = { text = "UNLICENSED" }
+requires-python = ">=3.9"
+authors = [{ name = "Antigravity" }]
+keywords = ["mcp", "security", "ai-agents", "langchain", "crewai", "autogen", "zero-trust"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "httpx>=0.27.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+langchain = [
+    "langchain-core>=0.3.0",
+    "pydantic>=2.0.0",
+]
+crewai = [
+    "crewai>=0.80.0",
+]
+autogen = [
+    "autogen-agentchat>=0.4.0",
+]
+all = [
+    "langchain-core>=0.3.0",
+    "crewai>=0.80.0",
+    "autogen-agentchat>=0.4.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "respx>=0.21.0",
+    "httpx>=0.27.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Ajimsha1080/hypher_ai"
+Documentation = "https://docs.hypher_ai.com"
+Repository = "https://github.com/Ajimsha1080/hypher_ai"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["hypher_ai*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["hypher_ai/tests"]

@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  proxy:
+    build: .
+    container_name: mcp-secure-proxy
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://mcp_admin:secure_password_change_me@postgres:5432/mcp_security
+      - REDIS_URL=redis://redis:6379
+      - AGENT_RUNTIME_URL=http://agent-runtime:8000
+      - FAIL_MODE=fail_closed
+      - JWT_SECRET=docker_secret_key_change_in_production_32hash
+      - MOCK_UPSTREAM=true
+      - ENABLE_DASHBOARD=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mcp-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  agent-runtime:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: hypher-agent-runtime
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://mcp_admin:secure_password_change_me@postgres:5432/mcp_security
+      - REDIS_URL=redis://redis:6379
+      - HYPHER_GATEWAY_URL=http://proxy:3000
+      - LLM_PROVIDER=openai
+      - MODEL=gpt-4o
+      - FALLBACK_MODEL=gpt-3.5-turbo
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mcp-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: mcp-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: mcp_admin
+      POSTGRES_PASSWORD: secure_password_change_me
+      POSTGRES_DB: mcp_security
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./src/audit/schema.sql:/docker-entrypoint-initdb.d/02_audit.sql
+      - ./src/db/migrations/001_production_gaps.sql:/docker-entrypoint-initdb.d/03_gaps.sql
+      - ./src/db/migrations/016_secure_agent_runtime.sql:/docker-entrypoint-initdb.d/04_agent_runtime.sql
+    networks:
+      - mcp-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcp_admin -d mcp_security"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: mcp-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mcp-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  mcp-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

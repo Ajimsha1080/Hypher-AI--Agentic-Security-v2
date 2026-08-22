@@ -1,0 +1,267 @@
+# MCP Security Gateway — Helm Chart
+# Deploy: helm install mcpsg ./helm/mcpsg -f values-production.yaml
+# 
+# Chart structure:
+#   helm/mcpsg/
+#     Chart.yaml          (metadata)
+#     values.yaml         (this file — defaults)
+#     templates/
+#       deployment.yaml   (main gateway pods)
+#       service.yaml      (ClusterIP + LoadBalancer)
+#       ingress.yaml      (nginx/traefik ingress with TLS)
+#       configmap.yaml    (non-secret env vars)
+#       secret.yaml       (JWT_SECRET, STRIPE keys)
+#       hpa.yaml          (horizontal pod autoscaler)
+#       pdb.yaml          (pod disruption budget)
+#       serviceaccount.yaml
+#       networkpolicy.yaml (zero-trust pod networking)
+#       cronjob.yaml      (ml profile rebuild, retention enforcement)
+
+# ── IMAGE ─────────────────────────────────────────────────────────────
+image:
+  repository: your-registry/mcp-security-gateway
+  tag: "3.0.0"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# ── REPLICAS & SCALING ────────────────────────────────────────────────
+replicaCount: 2
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 75
+
+# Pod disruption budget — always keep 1 replica during deployments
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ── RESOURCES ─────────────────────────────────────────────────────────
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+# ── SERVICE ───────────────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 3000
+  # Set to LoadBalancer if not using ingress
+  # type: LoadBalancer
+
+# ── INGRESS ───────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx          # or traefik, istio
+  host: gateway.yourcompany.com
+  # Wildcard subdomain for managed cloud tier:
+  wildcardHost: "*.mcpsecurity.dev"
+  tls:
+    enabled: true
+    secretName: mcpsg-tls  # Cert-manager or manual TLS secret
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # Wildcard subdomain routing (for managed cloud tier):
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ~* ^/mcp {
+        proxy_set_header X-Tenant-Slug $host;
+        proxy_pass http://mcpsg-service:3000;
+      }
+
+# ── DATABASE ──────────────────────────────────────────────────────────
+postgresql:
+  # Option A: Use bundled PostgreSQL (dev/small prod)
+  enabled: true
+  image:
+    repository: postgres
+    tag: "15-alpine"
+  auth:
+    database: mcp_security
+    username: mcp_admin
+    # Password set via existingSecret
+    existingSecret: mcpsg-db-secret
+    secretKeys:
+      adminPasswordKey: postgres-password
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: ""   # Use cluster default
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+  # Option B: External PostgreSQL (enterprise — point to RDS/CloudSQL)
+  # enabled: false
+  # external:
+  #   host: your-rds.cluster.us-east-1.rds.amazonaws.com
+  #   port: 5432
+  #   database: mcp_security
+  #   username: mcp_admin
+  #   existingSecret: mcpsg-db-secret
+
+# ── REDIS ─────────────────────────────────────────────────────────────
+redis:
+  # Option A: Bundled Redis (dev/small prod)
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  auth:
+    enabled: false   # Enable + set password for production
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+
+  # Option B: External Redis (enterprise — ElastiCache/Memorystore)
+  # enabled: false
+  # external:
+  #   host: your-elasticache.abc123.use1.cache.amazonaws.com
+  #   port: 6379
+
+# ── APPLICATION CONFIG ────────────────────────────────────────────────
+config:
+  # Non-secret environment variables (stored in ConfigMap)
+  nodeEnv: production
+  port: "3000"
+  logLevel: info
+  failMode: fail_closed
+  enableDashboard: "true"
+  enableWebsocket: "true"
+  mockUpstream: "false"
+  rateLimitMax: "100"
+  mcpTimeoutMs: "30000"
+  cloudDomain: mcpsecurity.dev
+
+# ── SECRETS ───────────────────────────────────────────────────────────
+# All secrets stored in K8s Secrets or external secret manager (Vault, AWS SM)
+secrets:
+  # Reference existing K8s secret
+  existingSecret: mcpsg-app-secret
+  # Keys that will be loaded from the secret:
+  # JWT_SECRET, ADMIN_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+  # GOOGLE_CLIENT_SECRET, AZURE_CLIENT_SECRET, OKTA_CLIENT_SECRET,
+  # EMAIL_API_KEY, ANTHROPIC_API_KEY, METRICS_TOKEN
+
+  # External secret manager (AWS Secrets Manager / Vault):
+  externalSecrets:
+    enabled: false
+    provider: aws-sm    # aws-sm | vault | gcp-sm | azure-kv
+    region: us-east-1
+    secretPrefix: /mcp-security/production/
+
+# ── HEALTH CHECKS ─────────────────────────────────────────────────────
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 3
+
+# ── CRON JOBS ─────────────────────────────────────────────────────────
+cronjobs:
+  # ML profile rebuild (every 2 hours)
+  mlProfileRebuild:
+    enabled: true
+    schedule: "0 */2 * * *"
+    command: ["node", "dist/anomaly/rebuild-cron.js"]
+
+  # Data retention enforcement (daily at 2am UTC)
+  retentionEnforcement:
+    enabled: true
+    schedule: "0 2 * * *"
+    command: ["node", "dist/hitl/retention-cron.js"]
+
+  # HITL timeout sweep (every minute)
+  hitlSweep:
+    enabled: true
+    schedule: "* * * * *"
+    command: ["node", "dist/hitl/timeout-sweep.js"]
+
+# ── NETWORK POLICY ────────────────────────────────────────────────────
+networkPolicy:
+  enabled: true
+  # Gateway pods can only talk to: postgres, redis, and external MCP servers
+  # No pod-to-pod traffic except via the gateway
+  egress:
+    allowInternetForMCPServers: true
+    allowInternetForSIEM: true
+    blockAll: false
+
+# ── SERVICE ACCOUNT ───────────────────────────────────────────────────
+serviceAccount:
+  create: true
+  annotations: {}
+  # For AWS IRSA (if using AWS Secrets Manager):
+  # annotations:
+  #   eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/mcpsg-role
+
+# ── POD SECURITY ──────────────────────────────────────────────────────
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+# ── NODE SELECTOR & TOLERATIONS ───────────────────────────────────────
+nodeSelector: {}
+tolerations: []
+affinity:
+  # Spread pods across availability zones
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app: mcp-security-gateway
+          topologyKey: topology.kubernetes.io/zone
+
+# ── MONITORING ────────────────────────────────────────────────────────
+metrics:
+  enabled: true
+  port: 3000
+  path: /metrics
+  # Prometheus ServiceMonitor (if prometheus-operator installed)
+  serviceMonitor:
+    enabled: false
+    interval: 15s
+    scrapeTimeout: 10s
+    namespace: monitoring
+
+# ── MIGRATION JOB ─────────────────────────────────────────────────────
+migrations:
+  # Run DB migrations before deploying new pods
+  enabled: true
+  image:
+    repository: your-registry/mcp-security-gateway
+    tag: "3.0.0"
+  command: ["npm", "run", "db:migrate"]

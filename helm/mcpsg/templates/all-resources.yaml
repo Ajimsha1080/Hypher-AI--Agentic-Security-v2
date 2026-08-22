@@ -1,0 +1,277 @@
+# ── SERVICE ───────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mcpsg.fullname" . }}
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector: {{ include "mcpsg.selectorLabels" . | nindent 4 }}
+---
+# ── INGRESS ───────────────────────────────────────────────────────────
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "mcpsg.fullname" . }}
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+        - {{ .Values.ingress.wildcardHost | quote }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "mcpsg.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+    - host: {{ .Values.ingress.wildcardHost | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "mcpsg.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}
+---
+# ── CONFIGMAP ─────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mcpsg.fullname" . }}-config
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+data:
+  NODE_ENV: {{ .Values.config.nodeEnv | quote }}
+  PORT: {{ .Values.config.port | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  FAIL_MODE: {{ .Values.config.failMode | quote }}
+  ENABLE_DASHBOARD: {{ .Values.config.enableDashboard | quote }}
+  ENABLE_WEBSOCKET: {{ .Values.config.enableWebsocket | quote }}
+  MOCK_UPSTREAM: {{ .Values.config.mockUpstream | quote }}
+  RATE_LIMIT_MAX: {{ .Values.config.rateLimitMax | quote }}
+  MCP_TIMEOUT_MS: {{ .Values.config.mcpTimeoutMs | quote }}
+  CLOUD_DOMAIN: {{ .Values.config.cloudDomain | quote }}
+  {{- if .Values.postgresql.enabled }}
+  DATABASE_URL: "postgresql://mcp_admin:$(POSTGRES_PASSWORD)@{{ include "mcpsg.fullname" . }}-postgresql:5432/mcp_security"
+  DB_HOST: "{{ include "mcpsg.fullname" . }}-postgresql"
+  {{- else }}
+  DATABASE_URL: "postgresql://{{ .Values.postgresql.external.username }}:$(POSTGRES_PASSWORD)@{{ .Values.postgresql.external.host }}:{{ .Values.postgresql.external.port }}/{{ .Values.postgresql.external.database }}"
+  DB_HOST: {{ .Values.postgresql.external.host | quote }}
+  {{- end }}
+  {{- if .Values.redis.enabled }}
+  REDIS_URL: "redis://{{ include "mcpsg.fullname" . }}-redis-master:6379"
+  REDIS_HOST: "{{ include "mcpsg.fullname" . }}-redis-master"
+  {{- else }}
+  REDIS_URL: "redis://{{ .Values.redis.external.host }}:{{ .Values.redis.external.port }}"
+  REDIS_HOST: {{ .Values.redis.external.host | quote }}
+  {{- end }}
+---
+# ── HORIZONTAL POD AUTOSCALER ─────────────────────────────────────────
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "mcpsg.fullname" . }}
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "mcpsg.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+{{- end }}
+---
+# ── POD DISRUPTION BUDGET ─────────────────────────────────────────────
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "mcpsg.fullname" . }}
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels: {{ include "mcpsg.selectorLabels" . | nindent 6 }}
+{{- end }}
+---
+# ── DATABASE MIGRATION JOB ────────────────────────────────────────────
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "mcpsg.fullname" . }}-migrate-{{ .Release.Revision }}
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      labels: {{ include "mcpsg.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: "{{ .Values.migrations.image.repository }}:{{ .Values.migrations.image.tag }}"
+          command: {{ toYaml .Values.migrations.command | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "mcpsg.fullname" . }}-config
+            - secretRef:
+                name: {{ .Values.secrets.existingSecret }}
+{{- end }}
+---
+# ── CRON JOBS ─────────────────────────────────────────────────────────
+{{- if .Values.cronjobs.mlProfileRebuild.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "mcpsg.fullname" . }}-ml-rebuild
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cronjobs.mlProfileRebuild.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: ml-rebuild
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              command: {{ toYaml .Values.cronjobs.mlProfileRebuild.command | nindent 16 }}
+              envFrom:
+                - configMapRef:
+                    name: {{ include "mcpsg.fullname" . }}-config
+                - secretRef:
+                    name: {{ .Values.secrets.existingSecret }}
+{{- end }}
+---
+{{- if .Values.cronjobs.hitlSweep.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "mcpsg.fullname" . }}-hitl-sweep
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cronjobs.hitlSweep.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: hitl-sweep
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              command: {{ toYaml .Values.cronjobs.hitlSweep.command | nindent 16 }}
+              envFrom:
+                - configMapRef:
+                    name: {{ include "mcpsg.fullname" . }}-config
+                - secretRef:
+                    name: {{ .Values.secrets.existingSecret }}
+{{- end }}
+---
+# ── NETWORK POLICY ────────────────────────────────────────────────────
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "mcpsg.fullname" . }}
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{ include "mcpsg.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - port: 3000
+          protocol: TCP
+  egress:
+    # Allow DNS
+    - ports:
+        - port: 53
+          protocol: UDP
+    # Allow PostgreSQL
+    - ports:
+        - port: 5432
+          protocol: TCP
+    # Allow Redis
+    - ports:
+        - port: 6379
+          protocol: TCP
+    # Allow HTTPS (for SIEM, Anthropic API, Stripe, MCP servers)
+    {{- if .Values.networkPolicy.egress.allowInternetForMCPServers }}
+    - ports:
+        - port: 443
+          protocol: TCP
+    {{- end }}
+{{- end }}
+---
+# ── SERVICE ACCOUNT ───────────────────────────────────────────────────
+{{- if .Values.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "mcpsg.serviceAccountName" . }}
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+---
+# ── PROMETHEUS SERVICE MONITOR ────────────────────────────────────────
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "mcpsg.fullname" . }}
+  labels: {{ include "mcpsg.labels" . | nindent 4 }}
+  namespace: {{ .Values.metrics.serviceMonitor.namespace }}
+spec:
+  selector:
+    matchLabels: {{ include "mcpsg.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: {{ .Values.metrics.path }}
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout }}
+{{- end }}

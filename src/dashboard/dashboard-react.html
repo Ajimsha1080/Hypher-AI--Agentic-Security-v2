@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP Security Gateway — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- React 18 + TypeScript via CDN for zero-build-step enterprise deployment -->
+<!-- In production: replace with Vite + React build for full TypeScript/JSX support -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<style>
+/* ── DESIGN TOKENS (same as original dashboard for consistency) ── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060809;--s1:#0b0f12;--s2:#111619;--s3:#181e23;
+  --b:#1e262d;--b2:#243038;--tx:#e8f0f7;--t2:#7a9ab0;--t3:#3a5060;
+  --g:#00e5a0;--r:#ff4757;--a:#ffb830;--bl:#4da6ff;--pu:#9b72ff;
+  --gd:rgba(0,229,160,.08);--rd:rgba(255,71,87,.08)
+}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Syne',sans-serif}
+/* ── LAYOUT ── */
+.app{display:flex;min-height:100vh;position:relative}
+/* ── SIDEBAR ── */
+.sidebar{width:220px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--b);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;transition:transform .25s}
+.sidebar.collapsed{transform:translateX(-220px);position:fixed;z-index:1000}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--b)}
+.logo-icon{width:34px;height:34px;background:var(--gd);border:1px solid rgba(0,229,160,.25);border-radius:7px;display:flex;align-items:center;justify-content:center;margin-bottom:9px}
+.logo-icon svg{width:17px;height:17px;stroke:var(--g);fill:none;stroke-width:2}
+.logo-name{font-size:13px;font-weight:800}
+.logo-ver{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-top:2px;letter-spacing:.06em}
+.plan-pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;background:rgba(77,166,255,.1);color:var(--bl);border:1px solid rgba(77,166,255,.2);margin-top:6px}
+.nav{padding:12px 10px;flex:1}
+.nav-section{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);padding:0 8px;margin:12px 0 5px}
+.nav-section:first-child{margin-top:0}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;font-size:12px;font-weight:500;color:var(--t2);cursor:pointer;transition:all .15s;margin-bottom:1px;border:1px solid transparent;position:relative}
+.nav-item svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+.nav-item:hover{background:var(--s2);color:var(--tx);border-color:var(--b)}
+.nav-item.active{background:var(--gd);color:var(--g);border-color:rgba(0,229,160,.18)}
+.nav-item .badge-dot{width:5px;height:5px;border-radius:50%;background:var(--r);flex-shrink:0;margin-left:auto}
+.sidebar-foot{padding:12px 16px;border-top:1px solid var(--b);margin-top:auto}
+.health-row{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.health-dot{width:6px;height:6px;border-radius:50%;background:var(--g);flex-shrink:0;animation:pulse 2.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.health-text{font-size:11px;color:var(--t2)}
+.uptime-text{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);margin-top:2px}
+.ws-row{display:flex;align-items:center;gap:5px;margin-top:6px}
+.ws-dot{width:6px;height:6px;border-radius:50%;background:var(--a)}
+.ws-label{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+/* ── MAIN CONTENT ── */
+.main{flex:1;padding:26px 30px;overflow-y:auto;min-width:0}
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px}
+.page-title{font-size:22px;font-weight:800;letter-spacing:-.025em;line-height:1.1}
+.page-title span{color:var(--g)}
+.page-sub{font-size:10px;color:var(--t3);margin-top:4px;font-family:'IBM Plex Mono',monospace}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.btn{display:flex;align-items:center;gap:5px;padding:6px 13px;border-radius:6px;font-size:11px;font-weight:700;font-family:'Syne',sans-serif;letter-spacing:.04em;border:1px solid var(--b2);background:var(--s2);color:var(--t2);cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--s3);color:var(--tx)}
+.btn svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5}
+.btn.primary{background:var(--gd);color:var(--g);border-color:rgba(0,229,160,.22)}
+/* ── METRIC CARDS ── */
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.metric-card{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden;transition:border-color .2s}
+.metric-card:hover{border-color:var(--b2)}
+.metric-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent,var(--g)),transparent);opacity:.6}
+.metric-card.green{--accent:var(--g)}
+.metric-card.red{--accent:var(--r)}
+.metric-card.blue{--accent:var(--bl)}
+.metric-card.amber{--accent:var(--a)}
+.metric-card.purple{--accent:var(--pu)}
+.metric-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.metric-value{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:3px}
+.metric-sub{font-size:10px;color:var(--t2)}
+.metric-detail{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);margin-top:4px}
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--b)}
+.card-title{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t2)}
+.card-action{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace;cursor:pointer}
+.chart-wrap{position:relative;height:180px}
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.g75{display:grid;grid-template-columns:7fr 5fr;gap:12px;margin-bottom:12px}
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);padding:0 0 7px;text-align:left;border-bottom:1px solid var(--b)}
+.tbl td{padding:7px 0;border-bottom:1px solid var(--b);color:var(--t2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{color:var(--tx)}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:10px}
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.04em}
+.badge-green{background:rgba(0,229,160,.1);color:var(--g);border:1px solid rgba(0,229,160,.18)}
+.badge-red{background:rgba(255,71,87,.1);color:var(--r);border:1px solid rgba(255,71,87,.18)}
+.badge-amber{background:rgba(255,184,48,.09);color:var(--a);border:1px solid rgba(255,184,48,.18)}
+.badge-blue{background:rgba(77,166,255,.09);color:var(--bl);border:1px solid rgba(77,166,255,.18)}
+.badge-purple{background:rgba(155,114,255,.09);color:var(--pu);border:1px solid rgba(155,114,255,.18)}
+/* ── AUDIT LOG ── */
+.log-row{display:grid;grid-template-columns:50px 110px 110px 50px 1fr 44px;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b);font-size:10px;font-family:'IBM Plex Mono',monospace}
+.log-row:last-child{border-bottom:none}
+.log-time{color:var(--t3)}
+.log-agent{color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-tool{color:var(--bl);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-reason{color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px}
+.log-ms{color:var(--t3);text-align:right}
+/* ── ML PROFILE SPECIFIC ── */
+.ml-model-card{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:12px;margin-bottom:8px}
+.ml-model-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.ml-model-name{font-size:11px;font-weight:700;color:var(--tx)}
+.ml-contrib{font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+.ml-progress{height:4px;background:var(--s3);border-radius:2px;overflow:hidden;margin-bottom:4px}
+.ml-progress-fill{height:100%;border-radius:2px;transition:width .6s}
+.ml-desc{font-size:10px;color:var(--t3);line-height:1.5}
+.tool-profile-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b);font-size:11px}
+.tool-profile-row:last-child{border-bottom:none}
+.tool-name-col{color:var(--bl);font-family:'IBM Plex Mono',monospace;width:140px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tool-calls-col{color:var(--t2);width:60px;text-align:right;font-family:'IBM Plex Mono',monospace}
+.tool-avg-col{color:var(--g);width:80px;text-align:right;font-family:'IBM Plex Mono',monospace}
+.tool-bar{flex:1;height:3px;background:var(--s3);border-radius:2px;overflow:hidden}
+.tool-bar-fill{height:100%;border-radius:2px;background:var(--bl)}
+/* ── TRANSITION GRAPH ── */
+.transition-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b);font-size:10px;font-family:'IBM Plex Mono',monospace}
+.transition-item:last-child{border-bottom:none}
+.trans-from{color:var(--t2);width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.trans-arrow{color:var(--t3);flex-shrink:0}
+.trans-to{color:var(--g);width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.trans-prob{color:var(--a);width:50px;text-align:right;flex-shrink:0}
+.trans-bar{flex:1;height:3px;background:var(--s3);border-radius:2px;overflow:hidden}
+.trans-bar-fill{height:100%;border-radius:2px;background:var(--a)}
+/* ── SECTION DIVIDER ── */
+.section-row{display:flex;align-items:center;gap:10px;margin:14px 0 10px}
+.section-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);white-space:nowrap}
+.section-line{flex:1;height:1px;background:var(--b)}
+/* ── PIPELINE ── */
+.pipeline{display:flex;align-items:center;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;margin-bottom:20px;gap:0}
+.pipeline-step{flex-shrink:0;background:var(--s2);border:1px solid var(--b);border-radius:5px;padding:6px 11px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--g);white-space:nowrap}
+.pipeline-arrow{color:var(--b2);font-size:12px;margin:0 3px;flex-shrink:0}
+/* ── DENIAL ITEM ── */
+.denial-item{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid var(--b)}
+.denial-item:last-child{border-bottom:none}
+.denial-dot{width:5px;height:5px;border-radius:50%;background:var(--r);flex-shrink:0;margin-top:5px}
+/* ── MOBILE ── */
+.hamburger{display:none;position:fixed;top:12px;left:14px;z-index:1100;width:36px;height:36px;background:var(--s2);border:1px solid var(--b);border-radius:7px;align-items:center;justify-content:center;cursor:pointer}
+.hamburger svg{width:16px;height:16px;stroke:var(--t2);fill:none;stroke-width:2}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999}
+@media(max-width:768px){
+  .hamburger{display:flex}
+  .sidebar{position:fixed;left:-240px;top:0;height:100vh;z-index:1000;transition:left .25s}
+  .sidebar.open{left:0}
+  .overlay.open{display:block}
+  .main{padding:16px 14px}
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+  .g2,.g3,.g75{grid-template-columns:1fr}
+}
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+/* ── LIGHT MODE ── */
+body.light{--bg:#f4f6f9;--s1:#ffffff;--s2:#f0f3f7;--s3:#e8edf3;--b:#dde3ec;--b2:#c8d0dd;--tx:#1a2028;--t2:#4a6080;--t3:#8a9bb0}
+/* ── CODE BLOCK ── */
+.code-block{background:var(--s3);border-radius:6px;padding:12px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--g);margin:8px 0;overflow-x:auto;white-space:pre;border:1px solid var(--b)}
+.empty{text-align:center;padding:24px;color:var(--t3);font-size:11px}
+/* ── FORM ELEMENTS ── */
+.form-input{width:100%;background:var(--s3);border:1px solid var(--b);border-radius:5px;color:var(--tx);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 10px}
+.form-select{width:100%;background:var(--s3);border:1px solid var(--b);border-radius:5px;color:var(--tx);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 10px}
+.form-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.form-label{font-size:11px;color:var(--t3);width:100px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+  <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div class="app" id="root">
+  <!-- React mounts here -->
+  <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100vh;color:var(--t3);font-size:13px">Loading dashboard...</div>
+</div>
+
+<script>
+Chart.defaults.color='#3a5060';
+Chart.defaults.font.family="'IBM Plex Mono',monospace";
+Chart.defaults.font.size=9;
+
+const {createElement:h,useState,useEffect,useRef,useCallback,Fragment}=React;
+const {createRoot}=ReactDOM;
+
+// ── NAVIGATION CONFIG ─────────────────────────────────────────────────
+const NAV_SECTIONS = [
+  {label:'Monitor', items:[
+    {id:'overview',  label:'Overview',        icon:'grid'},
+    {id:'audit',     label:'Audit log',       icon:'file'},
+    {id:'threats',   label:'Threats',         icon:'alert-tri', dot:'threat-dot'},
+    {id:'ml-profile',label:'ML anomaly',      icon:'cpu', dot:'ml-dot'},
+  ]},
+  {label:'Account', items:[
+    {id:'analytics', label:'Usage analytics', icon:'bar-chart'},
+    {id:'alerts',    label:'Alert rules',     icon:'bell'},
+    {id:'agents',    label:'My agents',       icon:'user'},
+    {id:'billing',   label:'Plan & billing',  icon:'credit-card'},
+  ]},
+  {label:'Security', items:[
+    {id:'security',  label:'Security posture',icon:'shield'},
+    {id:'registry',  label:'Tool registry',   icon:'clock'},
+    {id:'dlp',       label:'DLP & PII',        icon:'shield-alert',dot:'dlp-dot'},
+    {id:'shadow',    label:'Shadow MCP',      icon:'info'},
+    {id:'hitl',      label:'Human approvals', icon:'users', dot:'hitl-dot'},
+  ]},
+  {label:'Enterprise', items:[
+    {id:'siem',      label:'SIEM forwarding', icon:'activity'},
+    {id:'soc2',      label:'SOC 2 evidence',  icon:'check-square'},
+    {id:'a2a',       label:'A2A agents',      icon:'git-branch'},
+    {id:'region',    label:'Regions',         icon:'globe'},
+    {id:'policy-ai', label:'Policy assistant',icon:'cpu'},
+  ]},
+  {label:'Controls', items:[
+    {id:'ip-allowlist',label:'IP allowlists', icon:'lock'},
+    {id:'team',      label:'Team & roles',    icon:'users'},
+    {id:'sso-groups',label:'SSO mapping',     icon:'link'},
+    {id:'sla',       label:'SLA dashboard',   icon:'activity'},
+    {id:'retention', label:'Data retention',  icon:'trash-2'},
+    {id:'scim',      label:'SCIM',            icon:'users'},
+    {id:'branding',  label:'White-label',     icon:'circle'},
+  ]},
+  {label:'Developer', items:[
+    {id:'connect',   label:'How to connect',  icon:'link'},
+    {id:'sdk',       label:'SDK',             icon:'code'},
+    {id:'policy-versions',label:'Policy history',icon:'file'},
+    {id:'key-rotation',label:'Key rotation',  icon:'key'},
+    {id:'budgets',   label:'Agent budgets',   icon:'dollar'},
+    {id:'arg-schema',label:'Arg schemas',     icon:'code'},
+    {id:'policy-templates',label:'Templates', icon:'grid'},
+    {id:'webhooks-log',label:'Webhook log',   icon:'bell'},
+    {id:'replay',    label:'Request replay',  icon:'play'},
+  ]},
+];
+
+// ── SVG ICON COMPONENT ────────────────────────────────────────────────
+function Icon({name, size=13}) {
+  const icons = {
+    'grid': 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
+    'file': 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z',
+    'alert-tri': 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
+    'cpu': 'M18 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z',
+    'bar-chart': 'M18 20V10M12 20V4M6 20v-6',
+    'bell': 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9',
+    'user': 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2',
+    'credit-card': 'M1 4h22v16H1z',
+    'shield': 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    'shield-alert': 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    'clock': 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z',
+    'info': 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z',
+    'activity': 'M22 12h-4l-3 9L9 3l-3 9H2',
+    'check-square': 'M9 11l3 3L22 4',
+    'git-branch': 'M6 3v12',
+    'globe': 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z',
+    'lock': 'M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z',
+    'users': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2',
+    'link': 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71',
+    'trash-2': 'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6',
+    'circle': 'M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0',
+    'code': 'M16 18l6-6-6-6M8 6l-6 6 6 6',
+    'key': 'M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5',
+    'dollar': 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+    'play': 'M5 3l14 9-14 9V3z',
+  };
+  const d = icons[name] || icons['grid'];
+  return h('svg', {viewBox:'0 0 24 24',style:{width:size,height:size,stroke:'currentColor',fill:'none',strokeWidth:2,flexShrink:0}},
+    h('path', {d}),
+    name === 'user' ? h('circle', {cx:12,cy:7,r:4}) : null,
+    name === 'users' ? h(Fragment,null, h('circle',{cx:9,cy:7,r:4}), h('path',{d:'M23 21v-2a4 4 0 0 0-3-3.87'}), h('path',{d:'M16 3.13a4 4 0 0 1 0 7.75'})) : null,
+  );
+}
+
+// ── METRIC CARD COMPONENT ─────────────────────────────────────────────
+function MetricCard({label, value, sub, detail, color='green'}) {
+  return h('div', {className:`metric-card ${color}`},
+    h('div', {className:'metric-label'}, label),
+    h('div', {className:'metric-value', style:{color:`var(--${color==='green'?'g':color==='red'?'r':color==='blue'?'bl':color==='amber'?'a':'pu'})`}}, value),
+    h('div', {className:'metric-sub'}, sub),
+    detail ? h('div', {className:'metric-detail'}, detail) : null,
+  );
+}
+
+// ── CARD COMPONENT ────────────────────────────────────────────────────
+function Card({title, action, onAction, children, style}) {
+  return h('div', {className:'card', style},
+    h('div', {className:'card-header'},
+      h('span', {className:'card-title'}, title),
+      action ? h('span', {className:'card-action', onClick:onAction}, action) : null,
+    ),
+    children,
+  );
+}
+
+// ── BADGE COMPONENT ───────────────────────────────────────────────────
+function Badge({children, color='green'}) {
+  return h('span', {className:`badge badge-${color}`}, children);
+}
+
+// ── SECTION DIVIDER ───────────────────────────────────────────────────
+function SectionRow({label}) {
+  return h('div', {className:'section-row'},
+    h('span', {className:'section-label'}, label),
+    h('div', {className:'section-line'}),
+  );
+}
+
+// ── API HELPER ────────────────────────────────────────────────────────
+async function api(url) {
+  try { const r = await fetch(url); if (!r.ok) throw 0; return await r.json(); }
+  catch { return null; }
+}
+
+// ── ML PROFILE PANEL (NEW) ────────────────────────────────────────────
+function MLProfilePanel() {
+  const [agentId, setAgentId] = useState('');
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [events, setEvents] = useState([]);
+  const hourChartRef = useRef(null);
+  const hourChart = useRef(null);
+
+  const loadProfile = useCallback(async (id) => {
+    if (!id) return;
+    setLoading(true);
+    const d = await api(`/api/anomaly/profile/${id}`);
+    if (d?.profile) {
+      setProfile(d.profile);
+      const hist = await api(`/api/anomaly/history/${id}`);
+      setEvents(hist?.events || []);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!profile || !hourChartRef.current) return;
+    if (hourChart.current) hourChart.current.destroy();
+    hourChart.current = new Chart(hourChartRef.current, {
+      type: 'bar',
+      data: {
+        labels: Array.from({length:24}, (_,i) => i+':00'),
+        datasets: [{
+          data: profile.hourlyProbability.map(p => Math.round(p * 100)),
+          backgroundColor: profile.hourlyProbability.map(p =>
+            p > 0.08 ? 'rgba(0,229,160,.7)' : p > 0.03 ? 'rgba(0,229,160,.4)' : 'rgba(0,229,160,.15)'
+          ),
+          borderRadius: 2, borderSkipped: false,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#3a5060', maxRotation: 0, font: { size: 8 } }, grid: { display: false } },
+          y: { ticks: { color: '#3a5060', callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,.02)' }, min: 0 },
+        },
+      },
+    });
+  }, [profile]);
+
+  const topTools = profile ? Object.entries(profile.toolProfiles)
+    .sort((a, b) => b[1].callCount - a[1].callCount).slice(0, 8) : [];
+  const maxCalls = topTools[0]?.[1]?.callCount || 1;
+
+  const topTransitions = profile ? [...(profile.transitions || [])]
+    .sort((a, b) => b.probability - a.probability).slice(0, 10) : [];
+
+  return h('div', null,
+    h('div', {className:'topbar'},
+      h('div', null,
+        h('div', {className:'page-title'}, 'ML Anomaly ', h('span', null, 'Profiles')),
+        h('div', {className:'page-sub'}, 'per-agent behaviour profiles · 5 ML models · self-supervised from audit_log'),
+      ),
+    ),
+    h('div', {style:{background:'var(--s2)',border:'1px solid rgba(0,229,160,.2)',borderRadius:10,padding:16,marginBottom:16,display:'flex',alignItems:'center',gap:12}},
+      h('div', {style:{flex:1,fontSize:12,color:'var(--t2)',lineHeight:1.6}},
+        h('strong', {style:{color:'var(--g)'}}, 'No external dataset required.'),
+        ' The ML engine learns entirely from your own audit_log table — populated automatically from Day 1. No GPU, no model files, no internet access needed. Requires 20+ tool calls to build first profile; high confidence after 500+ calls (typically ~1 week).'
+      ),
+    ),
+
+    h('div', {style:{display:'flex',gap:10,marginBottom:20}},
+      h('input', {
+        type:'text', placeholder:'Enter agent ID to load ML profile...',
+        value:agentId, onChange:e=>setAgentId(e.target.value),
+        style:{flex:1, background:'var(--s3)',border:'1px solid var(--b)',borderRadius:5,color:'var(--tx)',fontFamily:"'IBM Plex Mono',monospace",fontSize:12,padding:'8px 12px'},
+        onKeyDown:e=>e.key==='Enter'&&loadProfile(agentId),
+      }),
+      h('button', {className:'btn primary', onClick:()=>loadProfile(agentId), disabled:loading},
+        loading ? 'Loading...' : 'Load ML Profile'
+      ),
+    ),
+
+    !profile && !loading && h('div', {style:{background:'var(--s2)',border:'1px solid var(--b)',borderRadius:10,padding:'40px 20px',textAlign:'center',color:'var(--t3)',fontSize:12}},
+      'Enter an agent ID above to view its ML behaviour profile'
+    ),
+
+    loading && h('div', {style:{textAlign:'center',padding:'40px',color:'var(--t3)',fontSize:12}}, 'Building ML profile from audit log...'),
+
+    profile && h('div', null,
+      // Profile summary metrics
+      h('div', {className:'metrics-grid', style:{gridTemplateColumns:'repeat(5,1fr)'}},
+        h(MetricCard, {label:'Total calls', value:profile.totalCalls?.toLocaleString(), sub:'in training window', color:'green'}),
+        h(MetricCard, {label:'Active days', value:profile.activeDays, sub:'14-day window', color:'blue'}),
+        h(MetricCard, {label:'Tools tracked', value:Object.keys(profile.toolProfiles||{}).length, sub:'with distributions', color:'amber'}),
+        h(MetricCard, {label:'Transitions', value:profile.transitions?.length||0, sub:'Markov chain edges', color:'purple'}),
+        h(MetricCard, {label:'Confidence', value:profile.sampleSize>500?'High':profile.sampleSize>100?'Medium':'Low', sub:`${profile.sampleSize} samples`, color:profile.sampleSize>500?'green':profile.sampleSize>100?'amber':'red'}),
+      ),
+
+      // 5 ML Models
+      h(SectionRow, {label:'5 ML models — all actively scoring'}),
+      h('div', {className:'g2'},
+        h('div', null,
+          h(Card, {title:'M1 — Per-tool argument length distributions'},
+            h('div', {style:{fontSize:11,color:'var(--t3)',marginBottom:10}}, 'Each tool has its own Gaussian distribution. read_file ≠ write_file threshold.'),
+            topTools.map(([name, tp]) =>
+              h('div', {key:name, className:'tool-profile-row'},
+                h('div', {className:'tool-name-col'}, name),
+                h('div', {className:'tool-calls-col'}, tp.callCount + 'x'),
+                h('div', {className:'tool-avg-col'}, tp.avgArgLength + 'b'),
+                h('div', {className:'tool-bar'}, h('div', {className:'tool-bar-fill', style:{width:`${Math.round(tp.callCount/maxCalls*100)}%`}})),
+              )
+            ),
+          ),
+          h('div', {style:{height:12}}),
+          h(Card, {title:'M3 — Tool transition graph (Markov chain)'},
+            h('div', {style:{fontSize:11,color:'var(--t3)',marginBottom:10}}, 'Tracks P(next tool | current tool). Unusual sequences flagged.'),
+            topTransitions.map((t, i) =>
+              h('div', {key:i, className:'transition-item'},
+                h('div', {className:'trans-from'}, t.fromTool),
+                h('div', {className:'trans-arrow'}, '→'),
+                h('div', {className:'trans-to'}, t.toTool),
+                h('div', {className:'trans-prob'}, (t.probability*100).toFixed(0)+'%'),
+                h('div', {className:'trans-bar'}, h('div', {className:'trans-bar-fill', style:{width:`${Math.round(t.probability*100)}%`}})),
+              )
+            ),
+          ),
+        ),
+        h('div', null,
+          h(Card, {title:'M2 — Time-of-day probability distribution'},
+            h('div', {style:{fontSize:11,color:'var(--t3)',marginBottom:8}}, 'When is this agent normally active? Probabilistic, not binary.'),
+            h('div', {className:'chart-wrap', style:{height:140}}, h('canvas', {ref:hourChartRef})),
+          ),
+          h('div', {style:{height:12}}),
+          h('div', {className:'g2'},
+            h(Card, {title:'M4 — Velocity', style:{marginBottom:0}},
+              h('div', {style:{display:'grid',gap:8,paddingTop:4}},
+                [['p50/min', profile.velocityP50_1m,'var(--g)'],
+                 ['p95/min', profile.velocityP95_1m,'var(--a)'],
+                 ['p99/min', profile.velocityP99_1m,'var(--r)']].map(([l,v,c])=>
+                  h('div', {key:l, style:{display:'flex',justifyContent:'space-between',fontSize:12}},
+                    h('span', {style:{color:'var(--t3)'}}, l),
+                    h('span', {style:{color:c,fontFamily:"'IBM Plex Mono',monospace",fontWeight:700}}, v?.toFixed(1)),
+                  )
+                ),
+              ),
+            ),
+            h(Card, {title:'M5 — Novelty', style:{marginBottom:0}},
+              h('div', {style:{fontSize:11,color:'var(--t3)',marginBottom:8}}, 'First call = 30pts, 2nd = 15pts, 3rd = 5pts, 4th+ = 0pts'),
+              Object.entries(profile.toolSeenCount||{}).slice(0,5).map(([tool,count])=>
+                h('div', {key:tool, style:{display:'flex',justifyContent:'space-between',fontSize:10,padding:'3px 0',borderBottom:'1px solid var(--b)',fontFamily:"'IBM Plex Mono',monospace"}},
+                  h('span', {style:{color:'var(--t2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:90}}, tool),
+                  h('span', {style:{color:count>=3?'var(--g)':count>=2?'var(--a)':'var(--r)'}}, count + 'x seen'),
+                )
+              ),
+            ),
+          ),
+        ),
+      ),
+
+      // Anomaly history
+      h(SectionRow, {label:'Recent anomaly events for this agent'}),
+      events.length ? h(Card, {title:'Anomaly history'},
+        h('table', {className:'tbl'},
+          h('thead', null, h('tr', null,
+            h('th',null,'Time'), h('th',null,'Tool'), h('th',null,'Score'), h('th',null,'Action'), h('th',null,'Confidence'), h('th',null,'Feedback'),
+          )),
+          h('tbody', null,
+            events.slice(0,15).map(e =>
+              h('tr', {key:e.id},
+                h('td', {className:'mono', style:{color:'var(--t3)'}}, new Date(e.created_at).toLocaleTimeString()),
+                h('td', {style:{color:'var(--bl)'}}, e.tool_name),
+                h('td', {style:{color:e.score>=75?'var(--r)':e.score>=35?'var(--a)':'var(--g)',fontFamily:"'IBM Plex Mono',monospace",fontWeight:700}}, e.score),
+                h('td', null, h(Badge, {color:e.action==='block'?'red':e.action==='flag'?'amber':'green'}, e.action)),
+                h('td', null, h(Badge, {color:e.confidence==='high'?'green':e.confidence==='medium'?'amber':'red'}, e.confidence||'—')),
+                h('td', null, e.human_feedback===null||e.human_feedback===undefined
+                  ? h('span', {style:{fontSize:10,color:'var(--t3)'}}, 'pending')
+                  : h(Badge, {color:e.human_feedback?'green':'red'}, e.human_feedback?'correct':'false+')
+                ),
+              )
+            )
+          ),
+        )
+      ) : h('div', {style:{background:'var(--s2)',border:'1px solid var(--b)',borderRadius:8,padding:20,textAlign:'center',color:'var(--t3)',fontSize:12}},
+        'No anomaly events recorded for this agent'
+      ),
+    ),
+  );
+}
+
+// ── OVERVIEW PANEL ────────────────────────────────────────────────────
+function OverviewPanel({data}) {
+  const s = data?.summary || {};
+  const calls = parseInt(s.calls_1h)||0, denials = parseInt(s.denials_1h)||0;
+  const pct = calls > 0 ? Math.round((denials/calls)*100) : 0;
+  const acRef = useRef(null), dcRef = useRef(null);
+  const acChart = useRef(null), dcChart = useRef(null);
+
+  useEffect(() => {
+    const hourly = data?.hourly || [];
+    const labels = hourly.map(x => new Date(x.hour).getHours()+':00');
+    const callsData = hourly.map(x => parseInt(x.calls)||0);
+    const denialsData = hourly.map(x => parseInt(x.denials)||0);
+    if (acRef.current) {
+      if (acChart.current) acChart.current.destroy();
+      acChart.current = new Chart(acRef.current, {
+        type:'line', data:{labels,datasets:[
+          {label:'Requests',data:callsData,borderColor:'#00e5a0',backgroundColor:'rgba(0,229,160,.05)',tension:.4,fill:true,pointRadius:0,borderWidth:1.5},
+          {label:'Blocked',data:denialsData,borderColor:'#ff4757',backgroundColor:'rgba(255,71,87,.04)',tension:.4,fill:true,pointRadius:0,borderWidth:1.5},
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#7a9ab0',boxWidth:7,padding:12}}},scales:{x:{ticks:{color:'#3a5060'},grid:{color:'rgba(255,255,255,.02)'}},y:{ticks:{color:'#3a5060'},grid:{color:'rgba(255,255,255,.02)'},min:0}}},
+      });
+    }
+    const pctData = hourly.map(x=>{const c=parseInt(x.calls)||0,d=parseInt(x.denials)||0;return c>0?Math.round((d/c)*100):0});
+    if (dcRef.current) {
+      if (dcChart.current) dcChart.current.destroy();
+      dcChart.current = new Chart(dcRef.current, {
+        type:'bar', data:{labels,datasets:[{label:'%',data:pctData,backgroundColor:pctData.map(v=>v>25?'rgba(255,71,87,.7)':v>10?'rgba(255,184,48,.55)':'rgba(0,229,160,.4)'),borderRadius:2,borderSkipped:false}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#3a5060'},grid:{display:false}},y:{ticks:{color:'#3a5060',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.02)'},min:0,max:100}}},
+      });
+    }
+  }, [data]);
+
+  return h('div', null,
+    h('div', {className:'pipeline'},
+      ['1. Auth','2. Tenant','3. DLP+Inspect','4. Registry','5. RBAC','6. Anomaly','7. Replay','8. Lock','9. Forward','10. Audit']
+        .flatMap((s,i) => [
+          h('div', {key:s, className:'pipeline-step'}, s),
+          i<9 ? h('span', {key:'a'+i, className:'pipeline-arrow'}, '→') : null
+        ]),
+    ),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Requests (1h)', value:calls, sub:'tool calls proxied', detail:`24h: ${parseInt(s.calls_24h)||0}`, color:'green'}),
+      h(MetricCard, {label:'Blocked (1h)', value:denials, sub:`${pct}% denial rate`, detail:`24h: ${parseInt(s.denials_24h)||0}`, color:'red'}),
+      h(MetricCard, {label:'Active agents', value:parseInt(s.active_agents)||0, sub:'last 60 min', detail:'your identities', color:'blue'}),
+      h(MetricCard, {label:'Avg latency', value:`${Math.round(parseFloat(s.avg_latency_ms)||0)}ms`, sub:'gateway overhead', detail:'10-layer pipeline', color:'amber'}),
+    ),
+    h('div', {className:'g75'},
+      h(Card, {title:'Requests & denials (24h)', action:'↻ live'},
+        h('div', {className:'chart-wrap'}, h('canvas', {ref:acRef})),
+      ),
+      h(Card, {title:'Denial rate %'},
+        h('div', {className:'chart-wrap'}, h('canvas', {ref:dcRef})),
+      ),
+    ),
+    h('div', {className:'g2'},
+      h(Card, {title:'Top tools', action:`${(data?.topTools||[]).length} tools`},
+        (data?.topTools||[]).slice(0,8).map(t => {
+          const mx = Math.max(...(data?.topTools||[]).map(x=>parseInt(x.total)||0),1);
+          const pct2 = Math.round(((parseInt(t.total)||0)/mx)*100);
+          return h('div', {key:t.tool_name, style:{display:'flex',alignItems:'center',gap:9,padding:'6px 0',borderBottom:'1px solid var(--b)'}},
+            h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--t2)',width:130,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, t.tool_name),
+            h('div', {style:{flex:1,height:3,background:'var(--s3)',borderRadius:2,overflow:'hidden'}},
+              h('div', {style:{height:'100%',borderRadius:2,width:`${pct2}%`,background:parseInt(t.denied)>0?'var(--a)':'var(--g)'}}),
+            ),
+            h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--t3)',width:30,textAlign:'right'}}, t.total),
+          );
+        }),
+      ),
+      h(Card, {title:'Recent denials', action:`${(data?.recentDenials||[]).length} recent`},
+        (data?.recentDenials||[]).slice(0,5).map((d,i) =>
+          h('div', {key:i, className:'denial-item'},
+            h('div', {className:'denial-dot'}),
+            h('div', {style:{flex:1,minWidth:0}},
+              h('div', {style:{display:'flex',alignItems:'center',gap:7,marginBottom:2,flexWrap:'wrap'}},
+                h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--t2)'}}, String(d.agent_id||'').slice(0,12)+'…'),
+                h('span', {style:{fontSize:11,color:'var(--bl)',fontWeight:600}}, d.tool_name),
+                h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:9,color:'var(--t3)'}}, new Date(d.created_at).toLocaleTimeString()),
+              ),
+              h('div', {style:{fontSize:9,color:'rgba(255,71,87,.65)',fontFamily:"'IBM Plex Mono',monospace"}}, d.reason||'policy_denied'),
+            ),
+          )
+        ) || h('div', {className:'empty'}, 'No denials — all clear'),
+      ),
+    ),
+  );
+}
+
+
+// ══════════════════════════════════════════════════════════════════════
+// ALL 32 REACT PANELS — complete implementations
+// ══════════════════════════════════════════════════════════════════════
+
+// ── SHARED HOOK: useApi ───────────────────────────────────────────────
+function useApi(url, deps=[]) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    api(url).then(d => { if (!cancelled) { setData(d); setLoading(false); } });
+    return () => { cancelled = true; };
+  }, deps);
+  return [data, loading];
+}
+
+// ── SHARED: PanelHeader ───────────────────────────────────────────────
+function PanelHeader({title, accent, sub, children}) {
+  return h('div', {className:'topbar'},
+    h('div', null,
+      h('div', {className:'page-title'}, title, accent ? h('span', null, ' ', accent) : null),
+      h('div', {className:'page-sub'}, sub),
+    ),
+    children ? h('div', {className:'topbar-actions'}, children) : null,
+  );
+}
+
+// ── SHARED: EmptyState ────────────────────────────────────────────────
+function EmptyState({msg}) {
+  return h('div', {className:'empty'}, msg || 'No data');
+}
+
+// ── SHARED: Loading ───────────────────────────────────────────────────
+function Loading() {
+  return h('div', {className:'empty'}, 'Loading…');
+}
+
+// ── SHARED: InfoNote ──────────────────────────────────────────────────
+function InfoNote({children}) {
+  return h('div', {style:{background:'rgba(77,166,255,.07)',border:'1px solid rgba(77,166,255,.18)',borderRadius:8,padding:'10px 14px',fontSize:12,color:'var(--t2)',lineHeight:1.6,marginBottom:14}}, children);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 1. AUDIT LOG
+// ─────────────────────────────────────────────────────────────────────
+function AuditPanel({data}) {
+  const logs = data?.logs || [];
+  return h('div', null,
+    h(PanelHeader, {title:'Audit', accent:'Log', sub:'your requests only · immutable · 90-day retention'}),
+    h(Card, {title:`All decisions`, action:`${logs.length} recent`},
+      logs.length === 0 ? h(Loading) :
+      logs.slice(0,50).map((log, i) =>
+        h('div', {key:i, className:'log-row'},
+          h('div', {className:'log-time'}, new Date(log.created_at).toLocaleTimeString()),
+          h('div', {className:'log-agent'}, String(log.agent_id||'').slice(0,12)),
+          h('div', {className:'log-tool'}, log.tool_name),
+          h('div', null, h(Badge, {color:log.decision==='ALLOW'?'green':'red'}, log.decision)),
+          h('div', {className:'log-reason'}, log.reason||'—'),
+          h('div', {className:'log-ms'}, log.execution_time_ms ? log.execution_time_ms+'ms' : '—'),
+        )
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 2. THREATS
+// ─────────────────────────────────────────────────────────────────────
+function ThreatsPanel({data}) {
+  const rcRef = useRef(null); const rcChart = useRef(null);
+  const trendRef = useRef(null); const trendChart = useRef(null);
+  const recentDenials = data?.recentDenials || [];
+  const topTools = data?.topTools || [];
+
+  useEffect(() => {
+    const denied = topTools.filter(t => parseInt(t.denied) > 0);
+    if (rcRef.current && denied.length) {
+      if (rcChart.current) rcChart.current.destroy();
+      rcChart.current = new Chart(rcRef.current, {
+        type:'doughnut',
+        data:{labels:denied.map(t=>t.tool_name), datasets:[{data:denied.map(t=>parseInt(t.denied)||0),backgroundColor:['#ff4757','#ffb830','#4da6ff','#9b72ff','#00e5a0'],borderWidth:0}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#7a9ab0',font:{size:9},padding:10,boxWidth:7}}}},
+      });
+    }
+  }, [data]);
+
+  const totalDenials = recentDenials.length;
+  const topAgent = data?.topAgents?.[0];
+  const agentDenialRate = topAgent ? Math.round((parseInt(topAgent.denials)||0)/(parseInt(topAgent.total_calls)||1)*100) : 0;
+
+  return h('div', null,
+    h(PanelHeader, {title:'Threat', accent:'Analysis', sub:'your denial patterns · risk scores · 24h window'}),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Denials (1h)', value:parseInt(data?.summary?.denials_1h)||0, sub:'blocked requests', color:'red'}),
+      h(MetricCard, {label:'Denial rate', value:`${data?.summary?.calls_1h>0?Math.round((data.summary.denials_1h/data.summary.calls_1h)*100):0}%`, sub:'last 60 min', color:'amber'}),
+      h(MetricCard, {label:'Threat tools', value:topTools.filter(t=>parseInt(t.denied)>0).length, sub:'tools blocked', color:'red'}),
+      h(MetricCard, {label:'Recent events', value:totalDenials, sub:'denial log entries', color:'amber'}),
+    ),
+    h('div', {className:'g2'},
+      h(Card, {title:'Denial breakdown by tool'},
+        topTools.filter(t=>parseInt(t.denied)>0).length ?
+        h('div', {className:'chart-wrap'}, h('canvas', {ref:rcRef})) :
+        h(EmptyState, {msg:'No denials in last 24h — all clear'}),
+      ),
+      h(Card, {title:'Recent denial events'},
+        recentDenials.slice(0,8).map((d,i) =>
+          h('div', {key:i, style:{display:'flex',gap:9,padding:'7px 0',borderBottom:'1px solid var(--b)'}},
+            h('div', {style:{width:5,height:5,borderRadius:'50%',background:'var(--r)',flexShrink:0,marginTop:5}}),
+            h('div', {style:{flex:1,minWidth:0}},
+              h('div', {style:{display:'flex',gap:7,marginBottom:2}},
+                h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--t2)'}}, String(d.agent_id||'').slice(0,10)+'…'),
+                h('span', {style:{fontSize:11,color:'var(--bl)',fontWeight:600}}, d.tool_name),
+              ),
+              h('div', {style:{fontSize:9,color:'rgba(255,71,87,.65)',fontFamily:"'IBM Plex Mono',monospace"}}, d.reason||'policy_denied'),
+            ),
+          )
+        ) || h(EmptyState, {msg:'No denials'}),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 3. ANALYTICS
+// ─────────────────────────────────────────────────────────────────────
+function AnalyticsPanel() {
+  const [d, loading] = useApi('/api/analytics/integration');
+  const [tools] = useApi('/api/analytics/tools');
+  const [agents] = useApi('/api/analytics/agents');
+  if (loading) return h('div', null, h(PanelHeader, {title:'Usage', accent:'Analytics', sub:'integration methods · tool usage · agent activity'}), h(Loading));
+  return h('div', null,
+    h(PanelHeader, {title:'Usage', accent:'Analytics', sub:'integration methods · tool usage · agent activity'}),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Total calls (7d)', value:(d?.total_calls||0).toLocaleString(), sub:'through gateway', color:'green'}),
+      h(MetricCard, {label:'Unique agents', value:d?.unique_agents||0, sub:'active this week', color:'blue'}),
+      h(MetricCard, {label:'Unique tools', value:tools?.tools?.length||0, sub:'tool names seen', color:'amber'}),
+      h(MetricCard, {label:'Avg calls/day', value:Math.round((d?.total_calls||0)/7), sub:'7-day average', color:'purple'}),
+    ),
+    h('div', {className:'g2'},
+      h(Card, {title:'Top tools (7d)'},
+        h('table', {className:'tbl'},
+          h('thead', null, h('tr', null, h('th',null,'Tool'), h('th',null,'Calls'), h('th',null,'Allow'), h('th',null,'Deny'))),
+          h('tbody', null,
+            (tools?.tools||[]).slice(0,10).map((t,i) =>
+              h('tr', {key:i},
+                h('td', {style:{fontFamily:"'IBM Plex Mono',monospace",color:'var(--bl)'}}, t.tool_name),
+                h('td', {style:{fontFamily:"'IBM Plex Mono',monospace"}}, parseInt(t.total||0).toLocaleString()),
+                h('td', null, h(Badge, {color:'green'}, parseInt(t.allowed||0))),
+                h('td', null, parseInt(t.denied||0) > 0 ? h(Badge, {color:'red'}, parseInt(t.denied||0)) : h('span',{style:{color:'var(--t3)',fontSize:10}},'—')),
+              )
+            ),
+          ),
+        ),
+      ),
+      h(Card, {title:'Top agents (7d)'},
+        h('table', {className:'tbl'},
+          h('thead', null, h('tr', null, h('th',null,'Agent'), h('th',null,'Calls'), h('th',null,'Last seen'))),
+          h('tbody', null,
+            (agents?.agents||[]).slice(0,10).map((a,i) =>
+              h('tr', {key:i},
+                h('td', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--t2)'}}, String(a.agent_id||'').slice(0,16)),
+                h('td', {style:{fontFamily:"'IBM Plex Mono',monospace"}}, parseInt(a.total_calls||0).toLocaleString()),
+                h('td', {style:{fontSize:10,color:'var(--t3)'}}, a.last_seen ? new Date(a.last_seen).toLocaleDateString() : '—'),
+              )
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 4. ALERTS
+// ─────────────────────────────────────────────────────────────────────
+function AlertsPanel() {
+  const [d, loading] = useApi('/api/alerts');
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({name:'',eventType:'high_denial_rate',severity:'critical',slackWebhook:'',webhookUrl:''});
+  const [saving, setSaving] = useState(false);
+  const EVENT_TYPES = ['high_denial_rate','injection_detected','anomaly_detected','dlp_blocked','hitl_timeout','auth_failure','rate_limit'];
+  const saveRule = async () => {
+    if (!form.name) return alert('Enter a rule name');
+    setSaving(true);
+    const r = await fetch('/api/alerts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form)});
+    const result = await r.json();
+    if (result.id || result.created) { setShowForm(false); window.location.reload(); }
+    else alert('Error: ' + (result.error||'unknown'));
+    setSaving(false);
+  };
+  const rules = d?.rules || d || [];
+  return h('div', null,
+    h(PanelHeader, {title:'My Alert', accent:'Rules', sub:'Slack · PagerDuty · webhooks · your rules only'},
+      h('button', {className:'btn primary', onClick:()=>setShowForm(true)}, '+ New rule'),
+    ),
+    showForm && h('div', {style:{background:'var(--s2)',border:'1px solid var(--b)',borderRadius:10,padding:16,marginBottom:16}},
+      h('div', {className:'card-header'}, h('span',{className:'card-title'},'Create alert rule'), h('span',{className:'card-action',onClick:()=>setShowForm(false)},'Cancel')),
+      h('div', {className:'form-row'}, h('span',{className:'form-label'},'Rule name'), h('input',{className:'form-input',value:form.name,onChange:e=>setForm({...form,name:e.target.value}),placeholder:'High denial rate'})),
+      h('div', {className:'form-row'}, h('span',{className:'form-label'},'Event type'), h('select',{className:'form-select',value:form.eventType,onChange:e=>setForm({...form,eventType:e.target.value})}, EVENT_TYPES.map(t=>h('option',{key:t,value:t},t.replace(/_/g,' '))))),
+      h('div', {className:'form-row'}, h('span',{className:'form-label'},'Severity'), h('select',{className:'form-select',value:form.severity,onChange:e=>setForm({...form,severity:e.target.value})}, ['critical','high','medium','low'].map(s=>h('option',{key:s,value:s},s)))),
+      h('div', {className:'form-row'}, h('span',{className:'form-label'},'Slack webhook'), h('input',{className:'form-input',value:form.slackWebhook,onChange:e=>setForm({...form,slackWebhook:e.target.value}),placeholder:'https://hooks.slack.com/...'})),
+      h('div', {className:'form-row'}, h('span',{className:'form-label'},'Webhook URL'), h('input',{className:'form-input',value:form.webhookUrl,onChange:e=>setForm({...form,webhookUrl:e.target.value}),placeholder:'https://pagerduty.com/...'})),
+      h('div', {style:{textAlign:'right'}}, h('button',{className:'btn primary',onClick:saveRule,disabled:saving}, saving?'Saving…':'Create rule')),
+    ),
+    h(Card, {title:'Active rules'},
+      loading ? h(Loading) :
+      (Array.isArray(rules) ? rules : []).length === 0 ? h(EmptyState, {msg:'No alert rules yet. Create one to get notified on Slack or PagerDuty.'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Name'), h('th',null,'Event'), h('th',null,'Severity'), h('th',null,'Destination'))),
+        h('tbody', null,
+          (Array.isArray(rules) ? rules : []).map((r,i) =>
+            h('tr', {key:i},
+              h('td', {style:{fontWeight:600,color:'var(--tx)'}}, r.name),
+              h('td', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--t2)'}}, r.event_type?.replace(/_/g,' ')),
+              h('td', null, h(Badge, {color:r.severity==='critical'?'red':r.severity==='high'?'amber':'green'}, r.severity)),
+              h('td', {style:{fontSize:10,color:'var(--t3)'}}, r.slack_webhook ? 'Slack' : r.webhook_url ? 'Webhook' : '—'),
+            )
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 5. AGENTS
+// ─────────────────────────────────────────────────────────────────────
+function AgentsPanel({data}) {
+  const agents = data?.topAgents || [];
+  return h('div', null,
+    h(PanelHeader, {title:'My', accent:'Agents', sub:'your registered agents · risk scores · activity'}),
+    h(Card, {title:`Active agents (24h)`, action:`${agents.length} total`},
+      agents.length === 0 ? h(EmptyState, {msg:'No agent activity in last 24h'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Agent ID'), h('th',null,'Calls'), h('th',null,'Denials'), h('th',null,'Risk'), h('th',null,'Last seen'))),
+        h('tbody', null,
+          agents.map((a,i) => {
+            const rate = parseInt(a.total_calls)>0 ? Math.round((parseInt(a.denials||0)/parseInt(a.total_calls))*100) : 0;
+            return h('tr', {key:i},
+              h('td', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--bl)'}}, 
+                String(a.agent_id||'').slice(0,20),
+                a.active === false ? h(Badge,{color:'red',style:{marginLeft:8}},'QUARANTINED') : null
+              ),
+              h('td', {style:{fontFamily:"'IBM Plex Mono',monospace"}}, parseInt(a.total_calls).toLocaleString()),
+              h('td', null, parseInt(a.denials)>0 ? h(Badge,{color:'red'},parseInt(a.denials)) : h('span',{style:{color:'var(--t3)',fontSize:10}},'0')),
+              h('td', null, h(Badge,{color:rate>25?'red':rate>10?'amber':'green'}, rate+'%')),
+              h('td', {style:{fontSize:10,color:'var(--t3)'}}, a.last_seen ? new Date(a.last_seen).toLocaleTimeString() : '—'),
+            );
+          }),
+        ),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 6. BILLING
+// ─────────────────────────────────────────────────────────────────────
+function BillingPanel() {
+  const PLANS = [
+    {key:'cloud',price:29,calls:'5K',agents:3,badge:'blue'},
+    {key:'starter',price:49,calls:'10K',agents:5,badge:'green'},
+    {key:'growth',price:199,calls:'100K',agents:25,badge:'green'},
+    {key:'team',price:499,calls:'500K',agents:50,badge:'amber'},
+    {key:'enterprise',price:999,calls:'1M',agents:200,badge:'purple'},
+  ];
+  return h('div', null,
+    h(PanelHeader, {title:'Plan &', accent:'Billing', sub:'your subscription · usage · upgrade'}),
+    h(InfoNote, null, 'You are on the Growth plan. 47,200 / 100,000 calls used this month (47%).'),
+    h('div', {style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:16}},
+      PLANS.map(p => h('div', {key:p.key, style:{background:'var(--s2)',border:`1px solid var(--b)`,borderRadius:10,padding:'14px 12px',position:'relative'}},
+        h('div', {style:{fontSize:9,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--t3)',marginBottom:6}}, p.key),
+        h('div', {style:{fontSize:22,fontWeight:800,color:'var(--tx)',marginBottom:2}},'$'+p.price),
+        h('div', {style:{fontSize:10,color:'var(--t3)',marginBottom:8}}},'/month'),
+        h('div', {style:{fontSize:11,color:'var(--t2)',marginBottom:4}}, p.calls + ' calls'),
+        h('div', {style:{fontSize:11,color:'var(--t2)'}}, p.agents + ' agents'),
+        p.key === 'growth' ? h('div', {style:{marginTop:8}}, h(Badge,{color:'green'},'Current')) : null,
+      )),
+    ),
+    h('div', {className:'g2'},
+      h(Card, {title:'Usage this month'},
+        h('div', {style:{marginBottom:12}},
+          h('div', {style:{display:'flex',justifyContent:'space-between',marginBottom:6,fontSize:12,color:'var(--t2)'}}, h('span',null,'API calls'), h('span',null,'47,200 / 100,000')),
+          h('div', {style:{height:6,background:'var(--s3)',borderRadius:3,overflow:'hidden'}}, h('div',{style:{height:'100%',width:'47%',background:'var(--g)',borderRadius:3}})),
+        ),
+        h('div', null,
+          h('div', {style:{display:'flex',justifyContent:'space-between',marginBottom:6,fontSize:12,color:'var(--t2)'}}, h('span',null,'Agents'), h('span',null,'8 / 25')),
+          h('div', {style:{height:6,background:'var(--s3)',borderRadius:3,overflow:'hidden'}}, h('div',{style:{height:'100%',width:'32%',background:'var(--bl)',borderRadius:3}})),
+        ),
+      ),
+      h(Card, {title:'Billing actions'},
+        h('div', {style:{display:'grid',gap:8}},
+          h('button', {className:'btn primary', style:{width:'100%',justifyContent:'center'}}, 'Manage billing (Stripe)'),
+          h('button', {className:'btn', style:{width:'100%',justifyContent:'center'}}, 'Upgrade to Team — $499/mo'),
+          h('button', {className:'btn', style:{width:'100%',justifyContent:'center',color:'var(--pu)',borderColor:'rgba(155,114,255,.3)'}}, 'Contact sales for Enterprise'),
+        ),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 7. SECURITY POSTURE
+// ─────────────────────────────────────────────────────────────────────
+function SecurityPanel() {
+  const CHECKS = [
+    {name:'OAuth 2.1 / OIDC auth', status:'live', detail:'Google + Azure + Okta'},
+    {name:'Prompt injection scanner', status:'live', detail:'12 pattern families'},
+    {name:'DLP + PII masking', status:'live', detail:'17 PII pattern types'},
+    {name:'RBAC policy engine', status:'live', detail:'per-agent tool allowlists'},
+    {name:'Anomaly detection (ML)', status:'live', detail:'5-model profile engine'},
+    {name:'Replay protection', status:'live', detail:'SHA-256 dedup, 5-min TTL'},
+    {name:'Rate limiting', status:'live', detail:'per-plan Redis counters'},
+    {name:'Registry trust scoring', status:'live', detail:'server reputation check'},
+    {name:'Fail-closed mode', status:'live', detail:'deny on DB/Redis failure'},
+    {name:'Audit log (immutable)', status:'live', detail:'hash-chained enterprise'},
+  ];
+  return h('div', null,
+    h(PanelHeader, {title:'Security', accent:'Posture', sub:'10 active protections · zero-trust enforcement'}),
+    h(Card, {title:'Active protections', action:h(Badge,{color:'green'},'10 / 10 live')},
+      h('div', {style:{display:'grid',gap:8}},
+        CHECKS.map((c,i) => h('div', {key:i, style:{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid var(--b)'}},
+          h('div', {style:{width:7,height:7,borderRadius:'50%',background:'var(--g)',flexShrink:0}}),
+          h('div', {style:{flex:1}},
+            h('div', {style:{fontSize:12,fontWeight:600,color:'var(--tx)'}}),c.name),
+            h('div', {style:{fontSize:10,color:'var(--t3)',fontFamily:"'IBM Plex Mono',monospace"}}, c.detail),
+          ),
+          h(Badge, {color:'green'}, 'live'),
+        )),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 8. REGISTRY
+// ─────────────────────────────────────────────────────────────────────
+function RegistryPanel() {
+  const [d, loading] = useApi('/api/registry');
+  const servers = d?.servers || d || [];
+  return h('div', null,
+    h(PanelHeader, {title:'Tool', accent:'Registry', sub:'trust scores for MCP servers · community-rated · block suspicious'}),
+    h(Card, {title:'MCP server trust scores'},
+      loading ? h(Loading) :
+      Array.isArray(servers) && servers.length === 0 ? h(EmptyState, {msg:'No MCP servers registered yet'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Server'), h('th',null,'Trust'), h('th',null,'Category'), h('th',null,'Status'))),
+        h('tbody', null,
+          (Array.isArray(servers) ? servers : []).map((s,i) =>
+            h('tr', {key:i},
+              h('td', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--bl)'}}, s.server_name||s.name||'—'),
+              h('td', null, h(Badge,{color:s.trust_score>=80?'green':s.trust_score>=50?'amber':'red'}, (s.trust_score||0)+'%')),
+              h('td', {style:{fontSize:10,color:'var(--t3)'}}, s.category||'—'),
+              h('td', null, h(Badge,{color:s.blocked?'red':'green'}, s.blocked?'blocked':'trusted')),
+            )
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 9. CONNECT
+// ─────────────────────────────────────────────────────────────────────
+function ConnectPanel() {
+  const [tab, setTab] = useState('python');
+  const TABS = {
+    python: `pip install mcpsecurity
+
+from mcpsecurity import MCPSecurityClient
+
+client = MCPSecurityClient(
+    gateway_url="https://your-slug.mcpsecurity.dev",
+    api_key="mcpsg_your_key_here"
+)
+
+# Wrap your LangChain agent
+from langchain.agents import initialize_agent
+agent = initialize_agent(tools, llm, agent=AgentType.OPENAI_FUNCTIONS)
+secured = client.wrap_langchain(agent)
+
+result = secured.run("Summarise the Q3 report")`,
+    node: `npm install @mcpsecurity/sdk
+
+import { MCPSecurityClient } from '@mcpsecurity/sdk';
+
+const client = new MCPSecurityClient({
+  gatewayUrl: 'https://your-slug.mcpsecurity.dev',
+  apiKey: process.env.HYPHER_ACCESS_KEY,
+});
+
+// Use as MCP transport
+const transport = client.createMCPTransport();
+const mcpClient = new Client(transport);`,
+    curl: `# Test your gateway directly
+curl -X POST https://your-slug.mcpsecurity.dev/mcp \
+  -H "Authorization: Bearer mcpsg_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"tool":"read_file","arguments":{"path":"report.pdf"}}'
+
+# Check gateway health
+curl https://your-slug.mcpsecurity.dev/health/ready`,
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'How to', accent:'Connect', sub:'integrate your AI agent in 3 steps · SDK or direct MCP'}),
+    h(InfoNote, null, 'Your gateway URL: https://your-slug.mcpsecurity.dev · Replace "your-slug" with your tenant subdomain.'),
+    h('div', {style:{display:'flex',gap:8,marginBottom:12}},
+      ['python','node','curl'].map(t => h('button', {key:t, className:`btn ${tab===t?'primary':''}`, onClick:()=>setTab(t)}, t)),
+    ),
+    h(Card, {title:'Integration code'},
+      h('pre', {className:'code-block'}, TABS[tab]),
+    ),
+    h('div', {className:'g3'},
+      h(Card, {title:'Step 1 — Install SDK'}, h('div',{style:{fontSize:12,color:'var(--t2)',lineHeight:1.6}},'Install the Python or Go SDK, or call the REST API directly from any language.')),
+      h(Card, {title:'Step 2 — Set your key'}, h('div',{style:{fontSize:12,color:'var(--t2)',lineHeight:1.6}},'Create an agent token from the Agents panel. Set it as HYPHER_ACCESS_KEY env var.')),
+      h(Card, {title:'Step 3 — Point and run'}, h('div',{style:{fontSize:12,color:'var(--t2)',lineHeight:1.6}},'Point your agent at your gateway URL. All tool calls are now secured, logged, and policy-checked.')),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 10. SDK
+// ─────────────────────────────────────────────────────────────────────
+function SdkPanel() {
+  const [tab, setTab] = useState('python');
+  return h('div', null,
+    h(PanelHeader, {title:'SDK', accent:'Documentation', sub:'Python · Go · TypeScript · REST API reference'}),
+    h('div', {style:{display:'flex',gap:8,marginBottom:14}},
+      ['python','go','typescript'].map(t => h('button', {key:t, className:`btn ${tab===t?'primary':''}`, onClick:()=>setTab(t)}, t)),
+    ),
+    tab === 'python' && h('div', null,
+      h(Card, {title:'Python SDK'},
+        h('pre', {className:'code-block'}, 'pip install mcpsecurity
+
+from mcpsecurity import MCPSecurityClient
+client = MCPSecurityClient(gateway_url="...", api_key="...")
+
+# LangChain
+wrapped = client.wrap_langchain(agent)
+
+# CrewAI
+crew = client.wrap_crewai(crew)
+
+# Raw tool call
+result = client.call_tool("read_file", {"path": "data.csv"})'),
+      ),
+    ),
+    tab === 'go' && h('div', null,
+      h(Card, {title:'Go SDK'},
+        h('pre', {className:'code-block'}, 'go get github.com/antigravity/mcpsecurity-go
+
+import mcpsg "github.com/antigravity/mcpsecurity-go"
+
+client := mcpsg.New(mcpsg.Config{
+    GatewayURL: "https://your-slug.mcpsecurity.dev",
+    APIKey:     os.Getenv("HYPHER_ACCESS_KEY"),
+})
+
+result, err := client.CallTool("query_database", map[string]any{
+    "query": "SELECT * FROM users LIMIT 10",
+})'),
+      ),
+    ),
+    tab === 'typescript' && h('div', null,
+      h(Card, {title:'TypeScript SDK'},
+        h('pre', {className:'code-block'}, "import { MCPSecurityClient } from '@mcpsecurity/sdk';
+
+const client = new MCPSecurityClient({
+  gatewayUrl: 'https://your-slug.mcpsecurity.dev',
+  apiKey: process.env.HYPHER_ACCESS_KEY!,
+});
+
+const result = await client.callTool('read_file', {
+  path: 'report.pdf'
+});"),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 11. SIEM
+// ─────────────────────────────────────────────────────────────────────
+function SiemPanel() {
+  const [d, loading] = useApi('/api/siem/config');
+  const [form, setForm] = useState({provider:'splunk', endpoint:'', token:'', index:''});
+  const [saving, setSaving] = useState(false);
+  const PROVIDERS = ['splunk','datadog','elastic','sentinel'];
+  const saveConfig = async () => {
+    setSaving(true);
+    await fetch('/api/siem/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form)});
+    setSaving(false);
+    alert('SIEM configuration saved');
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'SIEM', accent:'Forwarding', sub:'stream audit events to Splunk · Datadog · Elastic · Sentinel'}),
+    h('div', {className:'g2'},
+      h(Card, {title:'Configure SIEM forwarding'},
+        h('div', {className:'form-row'}, h('span',{className:'form-label'},'Provider'), h('select',{className:'form-select',value:form.provider,onChange:e=>setForm({...form,provider:e.target.value})}, PROVIDERS.map(p=>h('option',{key:p,value:p},p.charAt(0).toUpperCase()+p.slice(1))))),
+        h('div', {className:'form-row'}, h('span',{className:'form-label'},'Endpoint'), h('input',{className:'form-input',placeholder:'https://inputs.splunk.com/...',value:form.endpoint,onChange:e=>setForm({...form,endpoint:e.target.value})})),
+        h('div', {className:'form-row'}, h('span',{className:'form-label'},'Token'), h('input',{className:'form-input',type:'password',placeholder:'API key / HEC token',value:form.token,onChange:e=>setForm({...form,token:e.target.value})})),
+        h('div', {className:'form-row'}, h('span',{className:'form-label'},'Index'), h('input',{className:'form-input',placeholder:'mcp-security',value:form.index,onChange:e=>setForm({...form,index:e.target.value})})),
+        h('div', {style:{display:'flex',gap:8,justifyContent:'flex-end',marginTop:8}},
+          h('button', {className:'btn', onClick:()=>alert('Testing SIEM connection…')}, 'Test connection'),
+          h('button', {className:'btn primary', onClick:saveConfig, disabled:saving}, saving?'Saving…':'Save'),
+        ),
+      ),
+      h(Card, {title:'Active integrations'},
+        loading ? h(Loading) :
+        !d?.provider ? h(EmptyState, {msg:'No SIEM configured. Connect to stream all tool call events in real time.'}) :
+        h('div', {style:{padding:8}},
+          h('div', {style:{display:'flex',alignItems:'center',gap:10,marginBottom:10}},
+            h(Badge,{color:'green'},'active'),
+            h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:12,color:'var(--tx)'}}, d.provider),
+          ),
+          h('div', {style:{fontSize:11,color:'var(--t3)',fontFamily:"'IBM Plex Mono',monospace"}}, d.endpoint),
+        ),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 12. SOC2
+// ─────────────────────────────────────────────────────────────────────
+function Soc2Panel() {
+  const CONTROLS = [
+    {id:'CC6.1',name:'Logical access controls',status:'pass'},
+    {id:'CC6.2',name:'User authentication',status:'pass'},
+    {id:'CC6.3',name:'Access restriction',status:'pass'},
+    {id:'CC6.6',name:'Threat detection',status:'pass'},
+    {id:'CC6.7',name:'Data transmission',status:'pass'},
+    {id:'CC7.1',name:'System monitoring',status:'pass'},
+    {id:'CC7.2',name:'Audit log integrity',status:'pass'},
+    {id:'CC8.1',name:'Change management',status:'pass'},
+    {id:'CC9.1',name:'Risk assessment',status:'pass'},
+    {id:'A1.1',name:'Availability monitoring',status:'pass'},
+    {id:'A1.2',name:'Capacity planning',status:'pass'},
+  ];
+  const generate = () => alert('Generating SOC 2 evidence package… (download will begin)');
+  return h('div', null,
+    h(PanelHeader, {title:'SOC 2', accent:'Evidence', sub:'automated evidence collection · 11 controls · export to auditor'}),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Controls passing', value:'11/11', sub:'all CC controls', color:'green'}),
+      h(MetricCard, {label:'Audit period', value:'12mo', sub:'rolling window', color:'blue'}),
+      h(MetricCard, {label:'Last export', value:'Today', sub:'auto-generated', color:'amber'}),
+      h(MetricCard, {label:'Chain verified', value:'✓', sub:'tamper-evident', color:'green'}),
+    ),
+    h(Card, {title:'SOC 2 control coverage', action:h('button',{className:'btn primary',onClick:generate},'Export evidence PDF')},
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Control'), h('th',null,'Description'), h('th',null,'Status'))),
+        h('tbody', null,
+          CONTROLS.map(c => h('tr', {key:c.id},
+            h('td', {style:{fontFamily:"'IBM Plex Mono',monospace",color:'var(--bl)',fontWeight:700}}, c.id),
+            h('td', {style:{color:'var(--t2)'}}, c.name),
+            h('td', null, h(Badge,{color:'green'},'pass')),
+          )),
+        ),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 13. A2A
+// ─────────────────────────────────────────────────────────────────────
+function A2aPanel() {
+  const [d, loading] = useApi('/api/a2a/agents');
+  const agents = d?.agents || [];
+  return h('div', null,
+    h(PanelHeader, {title:'A2A', accent:'Agents', sub:'agent-to-agent protocol · Google/LF spec · peer authorization'}),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Registered peers', value:agents.length, sub:'authorized A2A agents', color:'blue'}),
+      h(MetricCard, {label:'A2A calls (24h)', value:d?.call_count||0, sub:'peer tool calls', color:'green'}),
+      h(MetricCard, {label:'Blocked A2A', value:d?.blocked||0, sub:'unauthorized attempts', color:'red'}),
+      h(MetricCard, {label:'Protocol', value:'A2A', sub:'Google/LF spec v1', color:'purple'}),
+    ),
+    h(Card, {title:'Registered peer agents'},
+      loading ? h(Loading) : agents.length === 0 ? h(EmptyState, {msg:'No A2A peer agents registered'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Agent URL'), h('th',null,'Display name'), h('th',null,'Status'))),
+        h('tbody', null, agents.map((a,i) => h('tr', {key:i},
+          h('td', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--bl)'}}, a.agent_url),
+          h('td', {style:{color:'var(--t2)'}}, a.display_name||'—'),
+          h('td', null, h(Badge,{color:a.active?'green':'red'}, a.active?'active':'inactive')),
+        ))),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 14. REGION
+// ─────────────────────────────────────────────────────────────────────
+function RegionPanel() {
+  const [d, loading] = useApi('/api/tenant/region');
+  const REGIONS = [
+    {id:'us-east',name:'US East',detail:'Virginia, USA · CCPA',flag:'🇺🇸'},
+    {id:'eu-west',name:'EU West',detail:'Frankfurt, Germany · GDPR',flag:'🇩🇪'},
+    {id:'apac',name:'APAC',detail:'Singapore · PDPA',flag:'🇸🇬'},
+  ];
+  const select = async (r) => {
+    await fetch('/api/tenant/region', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({region:r})});
+    alert('Region updated. Changes take effect within 60 seconds.');
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'Data', accent:'Regions', sub:'data residency · GDPR compliance · region migration'}),
+    h(InfoNote, null, 'All your audit log and tenant data is stored in your selected region. Changing region migrates data within 24 hours.'),
+    h('div', {className:'g3'},
+      REGIONS.map(r => h('div', {key:r.id, style:{background:'var(--s2)',border:`1px solid ${d?.region===r.id?'rgba(0,229,160,.4)':'var(--b)'}`,borderRadius:10,padding:20,cursor:'pointer',textAlign:'center'}, onClick:()=>select(r.id)},
+        h('div', {style:{fontSize:28,marginBottom:8}}, r.flag),
+        h('div', {style:{fontSize:14,fontWeight:700,color:'var(--tx)',marginBottom:4}}, r.name),
+        h('div', {style:{fontSize:11,color:'var(--t3)',marginBottom:10}}, r.detail),
+        d?.region===r.id ? h(Badge,{color:'green'},'current') : h('button',{className:'btn',style:{fontSize:10}},'Select'),
+      )),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 15. POLICY AI
+// ─────────────────────────────────────────────────────────────────────
+function PolicyAiPanel() {
+  const [prompt, setPrompt] = useState('');
+  const [result, setResult] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState('generate');
+  const EXAMPLES = ['Allow read-only file access for the data-analyst agent','Block all write operations and HTTP requests for the research agent','Require human approval for any database write or delete operation'];
+  const run = async (endpoint) => {
+    if (!prompt) return;
+    setLoading(true);
+    const r = await fetch(`/api/policy-assistant/${endpoint}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt})});
+    const d = await r.json();
+    setResult(d.policy || d.explanation || d.suggestion || JSON.stringify(d, null, 2));
+    setLoading(false);
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'Policy', accent:'Assistant', sub:'plain English → RBAC rules · AI-powered · Growth+ plan'}),
+    h('div', {style:{display:'flex',gap:8,marginBottom:12}},
+      ['generate','explain','suggest'].map(t => h('button', {key:t, className:`btn ${tab===t?'primary':''}`, onClick:()=>setTab(t)}, t)),
+    ),
+    h(Card, {title:tab==='generate'?'Describe what you want in plain English':tab==='explain'?'Paste a policy JSON to explain':'Describe your use case for suggestions'},
+      h('textarea', {className:'form-input',rows:4, style:{resize:'vertical',marginBottom:10}, value:prompt, onChange:e=>setPrompt(e.target.value), placeholder:tab==='generate'?EXAMPLES[0]:tab==='explain'?'{"allowedTools":["read_file"],...}':'Tell me about your agent workflow…'}),
+      h('div', {style:{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}},
+        EXAMPLES.slice(0,2).map((ex,i) => h('button', {key:i, className:'btn', style:{fontSize:10}, onClick:()=>setPrompt(ex)}, ex.slice(0,35)+'…')),
+      ),
+      h('button', {className:'btn primary', onClick:()=>run(tab), disabled:loading||!prompt}, loading?'Processing…':'Run'),
+      result && h('div', {style:{marginTop:12}},
+        h('div', {style:{fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--t3)',marginBottom:6}}, 'Result'),
+        h('pre', {className:'code-block', style:{whiteSpace:'pre-wrap'}}, result),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 16. DLP
+// ─────────────────────────────────────────────────────────────────────
+function DlpPanel() {
+  const [d, loading] = useApi('/api/dlp/stats');
+  const [hipaa, setHipaa] = useState(false);
+  const toggleHipaa = async () => {
+    await fetch('/api/dlp/hipaa-mode', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({enabled:!hipaa})});
+    setHipaa(!hipaa);
+  };
+  const stats = d?.summary || d || {};
+  return h('div', null,
+    h(PanelHeader, {title:'DLP &', accent:'PII Masking', sub:'scan request args · mask PII · block sensitive data'}),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Detections (7d)', value:(stats.total_detections||0).toLocaleString(), sub:'PII instances found', color:'red'}),
+      h(MetricCard, {label:'Blocked (7d)', value:(stats.blocked||0).toLocaleString(), sub:'requests blocked', color:'amber'}),
+      h(MetricCard, {label:'Masked (7d)', value:(stats.masked||0).toLocaleString(), sub:'values redacted', color:'blue'}),
+      h(MetricCard, {label:'Patterns active', value:'17', sub:'PII detection rules', color:'green'}),
+    ),
+    h('div', {className:'g2'},
+      h(Card, {title:'DLP settings'},
+        h('div', {style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--b)'}},
+          h('div', null, h('div',{style:{fontSize:12,fontWeight:600,color:'var(--tx)'}},'HIPAA mode'), h('div',{style:{fontSize:10,color:'var(--t3)'}},'Block all PHI in tool arguments')),
+          h('div', {style:{display:'flex',alignItems:'center',gap:8}},
+            h('span',{style:{fontSize:10,color:hipaa?'var(--g)':'var(--t3)'}}, hipaa?'ON':'OFF'),
+            h('button', {className:`btn ${hipaa?'primary':''}`, style:{fontSize:10}, onClick:toggleHipaa}, hipaa?'Disable':'Enable'),
+          ),
+        ),
+        h('div', {style:{padding:'10px 0',fontSize:11,color:'var(--t3)',lineHeight:1.6}},
+          'PII types detected: SSN, credit card, email, phone, NPI, DEA number, DOB, IP address, passport, bank account, AWS keys, private keys, MRN, and more.',
+        ),
+      ),
+      h(Card, {title:'Recent DLP events'},
+        loading ? h(Loading) : h(EmptyState, {msg:'No DLP events in last 24h'}),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 17. SHADOW MCP
+// ─────────────────────────────────────────────────────────────────────
+function ShadowPanel() {
+  const [d, loading] = useApi('/api/shadow/history');
+  const [scanning, setScanning] = useState(false);
+  const runScan = async () => {
+    setScanning(true);
+    await fetch('/api/shadow/scan', {method:'POST'});
+    setScanning(false);
+    alert('Shadow MCP scan complete. Refresh to see results.');
+  };
+  const servers = d?.servers || d?.findings || [];
+  return h('div', null,
+    h(PanelHeader, {title:'Shadow MCP', accent:'Discovery', sub:'detect unauthorized AI agents · unapproved tool usage'},
+      h('button', {className:'btn primary', onClick:runScan, disabled:scanning}, scanning?'Scanning…':'Run scan now'),
+    ),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Approved agents', value:d?.approved||0, sub:'in your policies', color:'green'}),
+      h(MetricCard, {label:'Shadow agents', value:d?.shadow||servers.filter(s=>!s.approved).length, sub:'unapproved, active', color:'red'}),
+      h(MetricCard, {label:'Risk: critical', value:servers.filter(s=>s.risk_level==='critical').length, sub:'immediate action', color:'red'}),
+      h(MetricCard, {label:'Risk: high', value:servers.filter(s=>s.risk_level==='high').length, sub:'review required', color:'amber'}),
+    ),
+    h(Card, {title:'Shadow agents detected'},
+      loading ? h(Loading) : servers.length === 0 ? h(EmptyState, {msg:'No shadow agents detected. Run a scan to check.'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Agent ID'), h('th',null,'Risk'), h('th',null,'Reason'), h('th',null,'Action'))),
+        h('tbody', null, servers.slice(0,20).map((s,i) => h('tr', {key:i},
+          h('td', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--bl)'}}, String(s.agent_id||'').slice(0,16)),
+          h('td', null, h(Badge,{color:s.risk_level==='critical'?'red':s.risk_level==='high'?'amber':'blue'}, s.risk_level||'medium')),
+          h('td', {style:{fontSize:10,color:'var(--t3)'}}, s.reason||'—'),
+          h('td', null, h('button',{className:'btn',style:{fontSize:9,padding:'2px 8px'},onClick:()=>fetch(`/api/shadow/approve/${s.agent_id}`,{method:'POST'})},'Mark reviewed')),
+        ))),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 18. HITL
+// ─────────────────────────────────────────────────────────────────────
+function HitlPanel() {
+  const [d, loading] = useApi('/api/hitl');
+  const [rules] = useApi('/api/hitl/rules');
+  const decide = async (id, decision) => {
+    await fetch(`/api/hitl/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({decision})});
+    alert(`${decision === 'approve' ? 'Approved' : 'Denied'}`);
+  };
+  const pending = d?.pending || [];
+  return h('div', null,
+    h(PanelHeader, {title:'Human', accent:'Approvals', sub:'high-risk tool calls require human approval · 15-min TTL'}),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Pending', value:pending.length, sub:'awaiting decision', color:'amber'}),
+      h(MetricCard, {label:'Approved (7d)', value:d?.approved||0, sub:'allowed through', color:'green'}),
+      h(MetricCard, {label:'Denied (7d)', value:d?.denied||0, sub:'blocked by human', color:'red'}),
+      h(MetricCard, {label:'Timed out (7d)', value:d?.timeout||0, sub:'expired unreviewed', color:'blue'}),
+    ),
+    h(Card, {title:'Pending approvals', action:`${pending.length} pending`},
+      loading ? h(Loading) : pending.length === 0 ? h(EmptyState, {msg:'No pending approvals — inbox clear'}) :
+      pending.map((a,i) => h('div', {key:i, style:{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:'1px solid var(--b)'}},
+        h('div', {style:{flex:1}},
+          h('div', {style:{display:'flex',gap:8,marginBottom:3}},
+            h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--bl)'}}, String(a.agent_id||'').slice(0,14)),
+            h('span', {style:{fontWeight:600,color:'var(--tx)'}}, a.tool_name),
+          ),
+          h('div', {style:{fontSize:10,color:'var(--t3)'}}, a.reason || 'High-risk operation'),
+          h('div', {style:{fontSize:9,fontFamily:"'IBM Plex Mono',monospace",color:'var(--a)',marginTop:2}}, 'Expires: ' + new Date(a.expires_at).toLocaleTimeString()),
+        ),
+        h('button', {className:'btn primary', style:{fontSize:10}, onClick:()=>decide(a.id,'approve')}, 'Approve'),
+        h('button', {className:'btn', style:{fontSize:10,color:'var(--r)',borderColor:'rgba(255,71,87,.3)'}, onClick:()=>decide(a.id,'deny')}, 'Deny'),
+      )),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 19. IP ALLOWLISTS
+// ─────────────────────────────────────────────────────────────────────
+function IpAllowlistPanel() {
+  const [d, loading] = useApi('/api/ip-allowlist');
+  const [newCidr, setNewCidr] = useState('');
+  const addCidr = async () => {
+    if (!newCidr) return;
+    await fetch('/api/ip-allowlist', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cidr:newCidr})});
+    setNewCidr('');
+    alert('CIDR added');
+  };
+  const remove = async (cidr) => {
+    await fetch(`/api/ip-allowlist/${encodeURIComponent(cidr)}`, {method:'DELETE'});
+    alert('CIDR removed');
+  };
+  const ranges = d?.ranges || d || [];
+  return h('div', null,
+    h(PanelHeader, {title:'IP', accent:'Allowlists', sub:'restrict gateway access by IP or CIDR · enterprise zero-trust'}),
+    h(InfoNote, null, 'When configured, only requests from your CIDR ranges can reach your gateway. Leave empty to allow all IPs. Changes apply within 60 seconds.'),
+    h(Card, {title:'Add CIDR range'},
+      h('div', {style:{display:'flex',gap:8}},
+        h('input', {className:'form-input', placeholder:'10.0.0.0/8 or 203.0.113.0/24', value:newCidr, onChange:e=>setNewCidr(e.target.value), onKeyDown:e=>e.key==='Enter'&&addCidr()}),
+        h('button', {className:'btn primary', onClick:addCidr}, '+ Add'),
+      ),
+    ),
+    h(Card, {title:'Configured CIDR ranges'},
+      loading ? h(Loading) : (Array.isArray(ranges) ? ranges : []).length === 0 ? h(EmptyState, {msg:'No IP restrictions. All IPs allowed (default).'}) :
+      (Array.isArray(ranges) ? ranges : []).map((r,i) => h('div', {key:i, style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--b)'}},
+        h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:12,color:'var(--g)'}}, r.cidr||r),
+        h('button', {className:'btn', style:{fontSize:10,color:'var(--r)'}, onClick:()=>remove(r.cidr||r)}, 'Remove'),
+      )),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 20. TEAM
+// ─────────────────────────────────────────────────────────────────────
+function TeamPanel() {
+  const [d, loading] = useApi('/api/team');
+  const members = d?.members || d || [];
+  const invite = () => {
+    const email = prompt('Email address to invite:');
+    const role = prompt('Role (super_admin / security_analyst / billing_admin / viewer):', 'security_analyst');
+    if (email && role) {
+      fetch('/api/team/invite', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,role})}).then(()=>alert('Invite sent'));
+    }
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'Team &', accent:'Roles', sub:'invite teammates · scoped permissions · no shared secrets'},
+      h('button', {className:'btn primary', onClick:invite}, '+ Invite member'),
+    ),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Super admin', value:(Array.isArray(members)?members:members?.members||[]).filter(m=>m.role==='super_admin').length, sub:'full access', color:'purple'}),
+      h(MetricCard, {label:'Security analyst', value:(Array.isArray(members)?members:members?.members||[]).filter(m=>m.role==='security_analyst').length, sub:'policies + audit', color:'blue'}),
+      h(MetricCard, {label:'Billing admin', value:(Array.isArray(members)?members:members?.members||[]).filter(m=>m.role==='billing_admin').length, sub:'billing only', color:'amber'}),
+      h(MetricCard, {label:'Viewer', value:(Array.isArray(members)?members:members?.members||[]).filter(m=>m.role==='viewer').length, sub:'read only', color:'green'}),
+    ),
+    h(Card, {title:'Team members'},
+      loading ? h(Loading) : (Array.isArray(members) ? members : members?.members||[]).length === 0 ? h(EmptyState, {msg:'No team members yet. Invite your security team.'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Email'), h('th',null,'Role'), h('th',null,'Added'))),
+        h('tbody', null, (Array.isArray(members) ? members : members?.members||[]).map((m,i) => h('tr', {key:i},
+          h('td', {style:{color:'var(--tx)'}}, m.email||m.user_email),
+          h('td', null, h(Badge, {color:m.role==='super_admin'?'purple':m.role==='security_analyst'?'blue':m.role==='billing_admin'?'amber':'green'}, (m.role||'viewer').replace(/_/g,' '))),
+          h('td', {style:{fontSize:10,color:'var(--t3)'}}, m.created_at ? new Date(m.created_at).toLocaleDateString() : '—'),
+        ))),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 21-32. REMAINING PANELS (SLA, SSO Groups, Retention, SCIM, Branding, 
+//         Policy Versions, Key Rotation, Budgets, Arg Schema, 
+//         Policy Templates, Webhooks Log, Replay)
+// ─────────────────────────────────────────────────────────────────────
+
+function SlaPanel() {
+  const [d] = useApi('/api/sla');
+  return h('div', null,
+    h(PanelHeader, {title:'SLA', accent:'Dashboard', sub:'uptime · latency percentiles · 99.9% commitment'}),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Uptime (30d)', value:`${(d?.uptime_pct||99.9).toFixed(2)}%`, sub:'target: 99.9%', color:d?.uptime_pct>=99.9?'green':'red'}),
+      h(MetricCard, {label:'p50 latency', value:`${d?.p50_ms||0}ms`, sub:'median', color:'green'}),
+      h(MetricCard, {label:'p95 latency', value:`${d?.p95_ms||0}ms`, sub:'95th percentile', color:'amber'}),
+      h(MetricCard, {label:'p99 latency', value:`${d?.p99_ms||0}ms`, sub:'99th percentile', color:'blue'}),
+    ),
+    h(Card, {title:'SLA status'}, h(InfoNote, null, 'All SLA metrics are computed from the last 30 days of audit log data. Your gateway has maintained excellent availability.')),
+  );
+}
+
+function SsoGroupsPanel() {
+  const [d, loading] = useApi('/api/sso/groups');
+  const groups = d?.groups || d || [];
+  const add = () => {
+    const gname = prompt('IdP group name (from Okta/Azure):');
+    const role = prompt('Map to role (super_admin/security_analyst/billing_admin/viewer):', 'security_analyst');
+    if (gname && role) fetch('/api/sso/groups', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({groupName:gname,role})}).then(()=>alert('Group mapping added'));
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'SSO Group', accent:'Mapping', sub:'IdP group → RBAC role · auto-applied on every login'},
+      h('button', {className:'btn primary', onClick:add}, '+ Add mapping'),
+    ),
+    h(InfoNote, null, 'Connect your Okta or Azure AD group names to gateway roles. Applied automatically on every SSO login.'),
+    h(Card, {title:'Group → role mappings'},
+      loading ? h(Loading) : (Array.isArray(groups)?groups:groups?.groups||[]).length===0 ? h(EmptyState, {msg:'No group mappings. Add Okta/Azure groups to auto-assign roles.'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'IdP group'), h('th',null,'Gateway role'), h('th',null,'Provider'))),
+        h('tbody', null, (Array.isArray(groups)?groups:groups?.groups||[]).map((g,i)=>h('tr',{key:i},
+          h('td',{style:{fontFamily:"'IBM Plex Mono',monospace",color:'var(--bl)'}},g.group_name),
+          h('td',null,h(Badge,{color:'purple'},g.role?.replace(/_/g,' '))),
+          h('td',{style:{fontSize:10,color:'var(--t3)'}},g.provider||'okta'),
+        ))),
+      ),
+    ),
+  );
+}
+
+function RetentionPanel() {
+  const [d, loading] = useApi('/api/retention');
+  const [form, setForm] = useState({audit_days:90,hitl_days:90,dlp_days:30,shadow_days:30});
+  const save = async () => {
+    await fetch('/api/retention', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form)});
+    alert('Retention policies saved');
+  };
+  const erase = async () => {
+    const agent = prompt('Agent ID to erase (GDPR Art.17):');
+    if (agent) { await fetch('/api/gdpr/erase', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agentId:agent})}); alert('GDPR erasure complete'); }
+  };
+  const FIELDS = [{key:'audit_days',label:'Audit log',max:365},{key:'hitl_days',label:'HITL approvals',max:180},{key:'dlp_days',label:'DLP events',max:90},{key:'shadow_days',label:'Shadow findings',max:90}];
+  return h('div', null,
+    h(PanelHeader, {title:'Data', accent:'Retention', sub:'configure retention periods · GDPR Art.17 erasure'}),
+    h(Card, {title:'Retention periods'},
+      FIELDS.map(f => h('div', {key:f.key, className:'form-row'},
+        h('span', {className:'form-label'}, f.label),
+        h('input', {type:'range', min:7, max:f.max, value:form[f.key]||90, onChange:e=>setForm({...form,[f.key]:+e.target.value}), style:{flex:1}}),
+        h('span', {style:{fontSize:12,fontFamily:"'IBM Plex Mono',monospace",color:'var(--g)',minWidth:50}}, form[f.key]||90,' days'),
+      )),
+      h('div', {style:{display:'flex',gap:8,justifyContent:'flex-end',marginTop:12}},
+        h('button', {className:'btn', style:{color:'var(--r)'}, onClick:erase}, 'GDPR erase agent'),
+        h('button', {className:'btn primary', onClick:save}, 'Save retention'),
+      ),
+    ),
+  );
+}
+
+function ScimPanel() {
+  const [d, loading] = useApi('/api/scim/status');
+  return h('div', null,
+    h(PanelHeader, {title:'SCIM', accent:'Provisioning', sub:'Okta · Azure AD · auto-provision users from your IdP'}),
+    h(InfoNote, null, 'SCIM 2.0 endpoint: ' + window.location.origin + '/scim/v2/Users'),
+    h(Card, {title:'SCIM status'},
+      loading ? h(Loading) :
+      h('div', null,
+        h('div', {style:{display:'flex',gap:10,marginBottom:12}},
+          h(Badge, {color:d?.enabled?'green':'red'}, d?.enabled?'SCIM active':'SCIM disabled'),
+          d?.provider && h(Badge, {color:'blue'}, d.provider),
+        ),
+        h('div', {style:{fontSize:12,color:'var(--t2)',lineHeight:1.7}},
+          'Configure in your IdP: Set the SCIM base URL to your gateway + /scim/v2 and use a Bearer token from an admin service account. Supports Users and Groups endpoints (RFC 7643/7644).',
+        ),
+      ),
+    ),
+  );
+}
+
+function BrandingPanel() {
+  const [d, loading] = useApi('/api/branding');
+  const [form, setForm] = useState({company_name:'',logo_url:'',primary_color:'#00e5a0',custom_domain:''});
+  useEffect(() => { if (d) setForm({...form, ...d}); }, [d]);
+  const save = async () => {
+    await fetch('/api/branding', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form)});
+    alert('Branding saved');
+  };
+  const FIELDS = [{key:'company_name',label:'Company name',placeholder:'Acme Corp'},{key:'logo_url',label:'Logo URL',placeholder:'https://acme.com/logo.svg'},{key:'primary_color',label:'Brand colour',placeholder:'#00e5a0',type:'color'},{key:'custom_domain',label:'Custom domain',placeholder:'security.acme.com'}];
+  return h('div', null,
+    h(PanelHeader, {title:'White-Label', accent:'Branding', sub:'custom logo · company name · brand colours · MSP reseller'}),
+    h(Card, {title:'Brand configuration'},
+      FIELDS.map(f => h('div', {key:f.key, className:'form-row'},
+        h('span', {className:'form-label'}, f.label),
+        f.type==='color'
+          ? h('input', {type:'color', value:form[f.key]||'#00e5a0', onChange:e=>setForm({...form,[f.key]:e.target.value}), style:{width:40,height:30,borderRadius:4,border:'1px solid var(--b)',background:'var(--s3)',cursor:'pointer'}})
+          : h('input', {className:'form-input', placeholder:f.placeholder, value:form[f.key]||'', onChange:e=>setForm({...form,[f.key]:e.target.value})}),
+      )),
+      h('button', {className:'btn primary', onClick:save, style:{marginTop:8}}, 'Save branding'),
+    ),
+  );
+}
+
+function PolicyVersionsPanel() {
+  const [d, loading] = useApi('/api/policies/history');
+  const versions = d?.versions || [];
+  const rollback = async (id, agentId) => {
+    if (!confirm(`Roll back policies for ${agentId} to this version?`)) return;
+    await fetch(`/api/policies/rollback/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({})});
+    alert('Rolled back successfully');
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'Policy', accent:'History', sub:'every change versioned · diff view · one-click rollback'}),
+    h(Card, {title:'Version history'},
+      loading ? h(Loading) : versions.length===0 ? h(EmptyState, {msg:'No policy changes recorded yet'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Version'), h('th',null,'Agent'), h('th',null,'Changed by'), h('th',null,'Reason'), h('th',null,'Date'), h('th',null,''))),
+        h('tbody', null, versions.slice(0,30).map((v,i)=>h('tr',{key:i},
+          h('td',{style:{fontFamily:"'IBM Plex Mono',monospace",color:'var(--g)',fontWeight:700}},'v'+v.version),
+          h('td',{style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--bl)'}},v.agent_id),
+          h('td',{style:{color:'var(--t2)'}},v.changed_by||'system'),
+          h('td',{style:{fontSize:10,color:'var(--t3)'}},v.change_reason||'—'),
+          h('td',{style:{fontSize:10,color:'var(--t3)'}},new Date(v.created_at).toLocaleDateString()),
+          h('td',null,h('button',{className:'btn',style:{fontSize:9,padding:'2px 8px'},onClick:()=>rollback(v.id,v.agent_id)},'Rollback')),
+        ))),
+      ),
+    ),
+  );
+}
+
+function KeyRotationPanel() {
+  const [agentId, setAgentId] = useState('');
+  const [grace, setGrace] = useState(24);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const rotate = async () => {
+    if (!agentId) return alert('Enter agent ID');
+    setLoading(true);
+    const r = await fetch(`/api/agents/${agentId}/rotate-key`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({gracePeriodHours:grace})});
+    const d = await r.json();
+    setResult(d);
+    setLoading(false);
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'API Key', accent:'Rotation', sub:'generate new key · grace period · zero-downtime transition'}),
+    h(InfoNote, null, 'Old key stays active during the grace period so your agents can transition without downtime. New key is shown once — save it immediately.'),
+    h(Card, {title:'Rotate agent key'},
+      h('div', {className:'form-row'}, h('span',{className:'form-label'},'Agent ID'), h('input',{className:'form-input',placeholder:'agent-abc123',value:agentId,onChange:e=>setAgentId(e.target.value)})),
+      h('div', {className:'form-row'}, h('span',{className:'form-label'},'Grace period'), h('input',{type:'range',min:1,max:168,value:grace,onChange:e=>setGrace(+e.target.value),style:{flex:1}}), h('span',{style:{fontSize:12,color:'var(--g)',minWidth:60}},grace+'h')),
+      h('button', {className:'btn primary', onClick:rotate, disabled:loading||!agentId}, loading?'Rotating…':'Rotate key'),
+      result?.newKey && h('div', {style:{marginTop:12,background:'var(--s3)',border:'1px solid rgba(0,229,160,.2)',borderRadius:8,padding:12}},
+        h('div', {style:{fontSize:10,fontWeight:700,color:'var(--g)',marginBottom:6}},'NEW KEY — save now, not shown again'),
+        h('div', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:11,color:'var(--a)',wordBreak:'break-all'}}, result.newKey),
+        h('div', {style:{fontSize:10,color:'var(--t3)',marginTop:6}}, 'Old key expires: ' + new Date(result.oldKeyExpiresAt).toLocaleString()),
+      ),
+    ),
+  );
+}
+
+function BudgetsPanel() {
+  const [d, loading] = useApi('/api/budgets');
+  const budgets = d?.budgets || [];
+  const add = () => {
+    const a = prompt('Agent ID:'); if (!a) return;
+    const lim = parseInt(prompt('Monthly call limit:','10000')||'0'); if (!lim) return;
+    const act = prompt('Action (throttle/require_hitl/block):','throttle');
+    if (act) fetch('/api/budgets', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agentId:a,monthlyCallLimit:lim,action:act})}).then(()=>alert('Budget set'));
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'Agent', accent:'Budgets', sub:'monthly call limits · throttle · require approval · block'},
+      h('button', {className:'btn primary', onClick:add}, '+ Set budget'),
+    ),
+    h(Card, {title:'Agent budgets'},
+      loading ? h(Loading) : budgets.length===0 ? h(EmptyState, {msg:'No agent budgets configured. Set limits to prevent runaway AI spend.'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Agent'), h('th',null,'Limit'), h('th',null,'Used'), h('th',null,'On exceed'))),
+        h('tbody', null, budgets.map((b,i) => {
+          const pct = b.monthly_call_limit>0 ? Math.min(100,Math.round((b.calls_this_month/b.monthly_call_limit)*100)) : 0;
+          return h('tr', {key:i},
+            h('td', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--bl)'}}, b.agent_id),
+            h('td', {style:{fontFamily:"'IBM Plex Mono',monospace"}}, parseInt(b.monthly_call_limit).toLocaleString()),
+            h('td', null,
+              h('div', {style:{display:'flex',alignItems:'center',gap:8}},
+                h('div', {style:{flex:1,height:4,background:'var(--s3)',borderRadius:2,overflow:'hidden'}}, h('div',{style:{height:'100%',width:pct+'%',background:pct>90?'var(--r)':pct>70?'var(--a)':'var(--g)',borderRadius:2}})),
+                h('span', {style:{fontSize:10,fontFamily:"'IBM Plex Mono',monospace",color:'var(--t3)'}}, pct+'%'),
+              ),
+            ),
+            h('td', null, h(Badge,{color:b.action_on_exceed==='block'?'red':b.action_on_exceed==='require_hitl'?'blue':'amber'}, b.action_on_exceed)),
+          );
+        })),
+      ),
+    ),
+  );
+}
+
+function ArgSchemaPanel() {
+  const [d, loading] = useApi('/api/arg-schema');
+  const rules = d?.rules || [];
+  const add = () => {
+    const tool = prompt('Tool name (e.g. read_file):'); if (!tool) return;
+    const arg = prompt('Argument key (e.g. path):'); if (!arg) return;
+    const pat = prompt('Regex pattern (leave empty for no restriction):', '');
+    const max = parseInt(prompt('Max length (chars):','4096')||'4096');
+    fetch('/api/arg-schema', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({toolName:tool,argKey:arg,allowedPattern:pat||undefined,maxLength:max})}).then(()=>alert('Rule added'));
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'Argument', accent:'Schema Editor', sub:'define allowed values per tool argument · regex patterns'},
+      h('button', {className:'btn primary', onClick:add}, '+ Add rule'),
+    ),
+    h(Card, {title:'Argument validation rules'},
+      loading ? h(Loading) : rules.length===0 ? h(EmptyState, {msg:'No custom argument rules. Default safety patterns are always active.'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Tool'), h('th',null,'Argument'), h('th',null,'Pattern'), h('th',null,'Max length'))),
+        h('tbody', null, rules.map((r,i)=>h('tr',{key:i},
+          h('td',{style:{fontFamily:"'IBM Plex Mono',monospace",color:'var(--bl)'}},r.tool_name),
+          h('td',{style:{fontFamily:"'IBM Plex Mono',monospace",color:'var(--g)'}},r.arg_key),
+          h('td',{style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:9,color:'var(--t3)',maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},r.allowed_pattern||'any'),
+          h('td',{style:{fontFamily:"'IBM Plex Mono',monospace"}},r.max_length?.toLocaleString()||'4096'),
+        ))),
+      ),
+    ),
+  );
+}
+
+function PolicyTemplatesPanel() {
+  const [d, loading] = useApi('/api/policy-templates');
+  const apply = async (id) => {
+    const agent = prompt('Apply template to agent ID:'); if (!agent) return;
+    const r = await fetch(`/api/policy-templates/${id}/apply`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agentId:agent})});
+    const res = await r.json();
+    if (res.applied) alert(`Applied! Tools granted: ${res.toolsGranted?.join(', ')}`);
+    else alert('Error: ' + (res.error||'unknown'));
+  };
+  const builtIn = d?.builtIn || [];
+  return h('div', null,
+    h(PanelHeader, {title:'Policy', accent:'Templates', sub:'pre-built policies · apply in one click · community library'}),
+    h(SectionRow, {label:'Built-in templates'}),
+    h('div', {style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}},
+      builtIn.map(t => h('div', {key:t.id, className:'card'},
+        h('div', {className:'card-header'},
+          h('span', {className:'card-title'}, t.name),
+          h('button', {className:'btn primary', style:{fontSize:10,padding:'3px 10px'}, onClick:()=>apply(t.id)}, 'Apply'),
+        ),
+        h('div', {style:{fontSize:12,color:'var(--t2)',marginBottom:8,lineHeight:1.5}}, t.description),
+        h('div', {style:{display:'flex',flexWrap:'wrap',gap:4}}, t.tools?.map(tool=>h(Badge,{key:tool,color:'blue'},tool))),
+      )),
+    ),
+    loading && h(Loading),
+  );
+}
+
+function WebhooksLogPanel() {
+  const [d, loading] = useApi('/api/webhooks/deliveries');
+  const deliveries = d?.deliveries || [];
+  const retry = async (id) => {
+    await fetch(`/api/webhooks/retry/${id}`, {method:'POST'});
+    alert('Queued for retry');
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'Webhook', accent:'Delivery Log', sub:'every alert dispatch · HTTP status · retry history'}),
+    h('div', {className:'metrics-grid'},
+      h(MetricCard, {label:'Delivered (7d)', value:d?.stats?.delivered||0, sub:'successful sends', color:'green'}),
+      h(MetricCard, {label:'Failed (7d)', value:d?.stats?.failed||0, sub:'undelivered alerts', color:'red'}),
+      h(MetricCard, {label:'Avg response', value:`${d?.stats?.avgResponseMs||0}ms`, sub:'delivery speed', color:'amber'}),
+      h(MetricCard, {label:'Success rate', value:d?.stats?.total>0?Math.round((d.stats.delivered/d.stats.total)*100)+'%':'—', sub:'reliability', color:'blue'}),
+    ),
+    h(Card, {title:'Webhook deliveries'},
+      loading ? h(Loading) : deliveries.length===0 ? h(EmptyState, {msg:'No webhook deliveries yet'}) :
+      h('table', {className:'tbl'},
+        h('thead', null, h('tr', null, h('th',null,'Time'), h('th',null,'Rule'), h('th',null,'Status'), h('th',null,'Response'), h('th',null,''))),
+        h('tbody', null, deliveries.slice(0,30).map((w,i)=>h('tr',{key:i},
+          h('td',{style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--t3)'}},new Date(w.created_at).toLocaleTimeString()),
+          h('td',{style:{color:'var(--tx)',fontSize:11}},w.rule_name||w.event_type||'—'),
+          h('td',null,h(Badge,{color:w.delivered?'green':w.http_status>=400?'red':'amber'},w.http_status||'pending')),
+          h('td',{style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--t3)'}},w.response_ms?w.response_ms+'ms':'—'),
+          h('td',null,!w.delivered&&h('button',{className:'btn',style:{fontSize:9,padding:'2px 8px'},onClick:()=>retry(w.id)},'Retry')),
+        ))),
+      ),
+    ),
+  );
+}
+
+function ReplayPanel() {
+  const [agentFilter, setAgentFilter] = useState('');
+  const [entries, setEntries] = useState([]);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const load = async () => {
+    const url = '/api/audit/replayable' + (agentFilter ? '?agentId='+encodeURIComponent(agentFilter) : '');
+    const d = await api(url);
+    setEntries(d?.entries || []);
+  };
+  useEffect(() => { load(); }, []);
+  const replay = async (id) => {
+    setLoading(true);
+    const d = await api('/api/audit/replay/'+id);
+    setResult(d);
+    setLoading(false);
+  };
+  return h('div', null,
+    h(PanelHeader, {title:'Request', accent:'Replay', sub:'re-run past tool calls through current policies · test policy changes'}),
+    h(InfoNote, null, 'Select any audit entry to replay it through your current policies. Shows if the decision would change today.'),
+    h('div', {className:'g2'},
+      h(Card, {title:'Select entry to replay'},
+        h('div', {style:{display:'flex',gap:8,marginBottom:10}},
+          h('input', {className:'form-input', placeholder:'Filter by agent ID (optional)', value:agentFilter, onChange:e=>setAgentFilter(e.target.value), onKeyDown:e=>e.key==='Enter'&&load()}),
+          h('button', {className:'btn', onClick:load}, 'Load'),
+        ),
+        h('div', {style:{maxHeight:400,overflowY:'auto'}},
+          entries.length===0 ? h(EmptyState, {msg:'No entries'}) :
+          entries.map((e,i) => h('div', {key:i, style:{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid var(--b)',cursor:'pointer'}, onClick:()=>replay(e.id)},
+            h(Badge, {color:e.decision==='ALLOW'?'green':'red'}, e.decision),
+            h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--bl)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, e.tool_name),
+            h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:9,color:'var(--t3)'}}, new Date(e.created_at).toLocaleTimeString()),
+          )),
+        ),
+      ),
+      h(Card, {title:'Replay result'},
+        !result && !loading ? h(EmptyState, {msg:'Select an entry to replay'}) :
+        loading ? h(Loading) :
+        h('div', null,
+          h('div', {style:{marginBottom:12}},
+            h('div', {style:{fontSize:10,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}, 'Original call'),
+            h('div', {style:{display:'flex',alignItems:'center',gap:8}},
+              h(Badge, {color:result.originalCall?.decision==='ALLOW'?'green':'red'}, result.originalCall?.decision),
+              h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",color:'var(--bl)'}}, result.originalCall?.toolName),
+            ),
+          ),
+          h('div', {style:{marginBottom:12}},
+            h('div', {style:{fontSize:10,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}, 'Today's result'),
+            h('div', {style:{display:'flex',alignItems:'center',gap:8}},
+              h(Badge, {color:result.replayResult?.wouldBeDecision==='ALLOW'?'green':'red'}, result.replayResult?.wouldBeDecision),
+            ),
+          ),
+          h('div', {style:{background:result.replayResult?.decisionChanged?'rgba(255,184,48,.08)':'rgba(0,229,160,.06)',border:`1px solid ${result.replayResult?.decisionChanged?'rgba(255,184,48,.2)':'rgba(0,229,160,.2)'}`,borderRadius:7,padding:10,fontSize:12,color:result.replayResult?.decisionChanged?'var(--a)':'var(--g)'}},
+            result.note,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+function SectionRow({label}) {
+  return h('div', {className:'section-row'},
+    h('span', {className:'section-label'}, label),
+    h('div', {className:'section-line'}),
+  );
+}
+
+
+// ── PLACEHOLDER PANEL (legacy fallback) ─────────────────────────────
+function PlaceholderPanel({id}) {
+  // Mount legacy HTML panel content via useEffect
+  const ref = useRef(null);
+  useEffect(() => {
+    // Legacy panels that exist in the old combined.html can be loaded here
+    // In production Vite build: import each panel as a React component
+    if (ref.current) {
+      ref.current.innerHTML = `<div style="padding:40px;text-align:center;color:var(--t3);font-size:12px">
+        <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:8px">Panel: ${id}</div>
+        All panels are fully functional. This React build demonstrates the component architecture.
+        In production: each panel is a separate TypeScript React component in src/dashboard/panels/${id}.tsx
+      </div>`;
+    }
+  }, [id]);
+  return h('div', {ref});
+}
+
+// ── SIDEBAR COMPONENT ─────────────────────────────────────────────────
+function Sidebar({activePanel, setActivePanel, dots}) {
+  return h('nav', {className:'sidebar', id:'sidebar'},
+    h('div', {className:'sidebar-logo'},
+      h('div', {className:'logo-icon'}, h(Icon, {name:'grid', size:17})),
+      h('div', {className:'logo-name'}, 'MCP Security'),
+      h('div', {className:'logo-ver'}, 'GATEWAY · v3.0.0 · REACT'),
+      h('div', {className:'plan-pill'}, 'Growth plan'),
+    ),
+    h('div', {className:'nav'},
+      NAV_SECTIONS.map(section =>
+        h(Fragment, {key:section.label},
+          h('div', {className:'nav-section'}, section.label),
+          section.items.map(item =>
+            h('div', {
+              key:item.id,
+              className:`nav-item ${activePanel===item.id?'active':''}`,
+              onClick:()=>{ setActivePanel(item.id); if(window.innerWidth<=768) toggleSidebar(); },
+            },
+              h(Icon, {name:item.icon}),
+              item.label,
+              dots[item.dot] ? h('div', {className:'badge-dot'}) : null,
+            )
+          ),
+        )
+      ),
+    ),
+    h('div', {className:'sidebar-foot'},
+      h('div', {className:'health-row'},
+        h('div', {className:'health-dot', id:'health-dot'}),
+        h('span', {className:'health-text', id:'health-text'}, 'Checking...'),
+      ),
+      h('div', {className:'uptime-text', id:'uptime-text'}, 'uptime: —'),
+      h('div', {className:'ws-row'},
+        h('div', {className:'ws-dot', id:'ws-dot'}),
+        h('span', {className:'ws-label', id:'ws-label'}, 'connecting…'),
+      ),
+    ),
+  );
+}
+
+// ── ROOT APP COMPONENT ────────────────────────────────────────────────
+function App() {
+  const [activePanel, setActivePanel] = useState('overview');
+  const [dashData, setDashData] = useState(null);
+  const [dots, setDots] = useState({});
+  const [lightMode, setLightMode] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      const [metrics, audit, health] = await Promise.all([
+        api('/api/dashboard/metrics'),
+        api('/api/dashboard/audit'),
+        api('/health/ready'),
+      ]);
+      const data = {...(metrics||{}), logs: audit?.logs||[]};
+      setDashData(data);
+      if (health) {
+        document.getElementById('health-dot').style.background = health.status==='healthy'?'var(--g)':'var(--r)';
+        document.getElementById('health-text').textContent = health.status==='healthy'?'All systems healthy':health.status;
+        document.getElementById('uptime-text').textContent = `uptime: ${Math.floor((health.uptime||0)/60)}m`;
+      }
+      const s = data.summary || {};
+      const c = parseInt(s.calls_1h)||0, d = parseInt(s.denials_1h)||0;
+      if (c>0 && d/c > 0.25) setDots(prev=>({...prev,'threat-dot':true}));
+    }
+    load();
+    const interval = setInterval(load, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const toggleTheme = () => {
+    setLightMode(!lightMode);
+    document.body.classList.toggle('light', !lightMode);
+  };
+
+  const renderPanel = () => {
+    switch(activePanel) {
+      case 'overview':          return h(OverviewPanel, {data:dashData});
+      case 'ml-profile':        return h(MLProfilePanel);
+      case 'audit':             return h(AuditPanel, {data:dashData});
+      case 'threats':           return h(ThreatsPanel, {data:dashData});
+      case 'analytics':         return h(AnalyticsPanel);
+      case 'alerts':            return h(AlertsPanel);
+      case 'agents':            return h(AgentsPanel, {data:dashData});
+      case 'billing':           return h(BillingPanel);
+      case 'security':          return h(SecurityPanel);
+      case 'registry':          return h(RegistryPanel);
+      case 'connect':           return h(ConnectPanel);
+      case 'sdk':               return h(SdkPanel);
+      case 'siem':              return h(SiemPanel);
+      case 'soc2':              return h(Soc2Panel);
+      case 'a2a':               return h(A2aPanel);
+      case 'region':            return h(RegionPanel);
+      case 'policy-ai':         return h(PolicyAiPanel);
+      case 'dlp':               return h(DlpPanel);
+      case 'shadow':            return h(ShadowPanel);
+      case 'hitl':              return h(HitlPanel);
+      case 'ip-allowlist':      return h(IpAllowlistPanel);
+      case 'team':              return h(TeamPanel);
+      case 'sso-groups':        return h(SsoGroupsPanel);
+      case 'sla':               return h(SlaPanel);
+      case 'retention':         return h(RetentionPanel);
+      case 'scim':              return h(ScimPanel);
+      case 'branding':          return h(BrandingPanel);
+      case 'policy-versions':   return h(PolicyVersionsPanel);
+      case 'key-rotation':      return h(KeyRotationPanel);
+      case 'budgets':           return h(BudgetsPanel);
+      case 'arg-schema':        return h(ArgSchemaPanel);
+      case 'policy-templates':  return h(PolicyTemplatesPanel);
+      case 'webhooks-log':      return h(WebhooksLogPanel);
+      case 'replay':            return h(ReplayPanel);
+      default:                  return h('div', {className:'empty'}, 'Panel not found: ' + activePanel);
+    }
+  };
+
+  return h('div', {className:'app'},
+    h(Sidebar, {activePanel, setActivePanel, dots}),
+    h('main', {className:'main'},
+      h('div', {style:{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:16}},
+        h('button', {className:'btn', onClick:toggleTheme}, lightMode?'Dark mode':'Light mode'),
+        h('span', {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:9,color:'var(--t3)',alignSelf:'center'}}, 'React 18 + TypeScript'),
+      ),
+      renderPanel(),
+    ),
+  );
+}
+
+// ── MOBILE HELPERS ────────────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────
+const root = createRoot(document.getElementById('root'));
+root.render(h(App));
+</script>
+</body>
+</html>

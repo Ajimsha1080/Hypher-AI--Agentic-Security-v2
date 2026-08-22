@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP Security Gateway — Zero-Trust Security for AI Agents</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#060809;--s1:#0b0f12;--s2:#111619;--b:#1e262d;--tx:#e8f0f7;--t2:#7a9ab0;--t3:#3a5060;--g:#00e5a0;--r:#ff4757;--a:#ffb830;--bl:#4da6ff;--pu:#9b72ff}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden}
+.bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,229,160,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.012) 1px,transparent 1px);background-size:56px 56px;pointer-events:none}
+.blob{position:fixed;border-radius:50%;pointer-events:none;z-index:0}
+.blob1{width:800px;height:800px;background:radial-gradient(circle,rgba(0,229,160,.04) 0%,transparent 65%);top:-300px;left:-300px}
+.blob2{width:700px;height:700px;background:radial-gradient(circle,rgba(77,166,255,.03) 0%,transparent 65%);bottom:-200px;right:-200px}
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(6,8,9,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--b);padding:0 48px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:800;text-decoration:none;color:var(--tx)}
+.nav-logo-icon{width:32px;height:32px;background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.nav-logo-icon svg{width:16px;height:16px;stroke:var(--g);fill:none;stroke-width:2}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{font-size:12px;font-weight:500;color:var(--t2);text-decoration:none;transition:color .15s}
+.nav-links a:hover{color:var(--tx)}
+.nav-cta{display:flex;align-items:center;gap:10px}
+.btn-ghost{padding:7px 16px;border-radius:6px;font-size:12px;font-weight:700;font-family:'Syne',sans-serif;border:1px solid var(--b);background:transparent;color:var(--t2);cursor:pointer;text-decoration:none;transition:all .15s}
+.btn-ghost:hover{background:var(--s2);color:var(--tx)}
+.btn-primary{padding:7px 18px;border-radius:6px;font-size:12px;font-weight:700;font-family:'Syne',sans-serif;border:1px solid rgba(0,229,160,.3);background:rgba(0,229,160,.08);color:var(--g);cursor:pointer;text-decoration:none;transition:all .15s}
+.btn-primary:hover{background:rgba(0,229,160,.15);border-color:rgba(0,229,160,.5)}
+/* HERO */
+.hero{position:relative;z-index:1;padding:160px 48px 100px;max-width:1100px;margin:0 auto;text-align:center}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.18);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--g);letter-spacing:.06em;margin-bottom:28px}
+.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--g);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+h1{font-size:clamp(36px,5vw,64px);font-weight:800;letter-spacing:-.03em;line-height:1.08;margin-bottom:20px}
+h1 span{color:var(--g)}
+.hero-sub{font-size:18px;color:var(--t2);max-width:620px;margin:0 auto 40px;line-height:1.65;font-weight:400}
+.hero-actions{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:60px}
+.btn-hero{padding:13px 28px;border-radius:8px;font-size:14px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;text-decoration:none;transition:all .15s}
+.btn-hero-primary{background:rgba(0,229,160,.1);color:var(--g);border:1px solid rgba(0,229,160,.3)}
+.btn-hero-primary:hover{background:rgba(0,229,160,.18);border-color:rgba(0,229,160,.6)}
+.btn-hero-ghost{background:transparent;color:var(--t2);border:1px solid var(--b)}
+.btn-hero-ghost:hover{background:var(--s2);color:var(--tx)}
+.hero-sub-note{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+/* PIPELINE VISUAL */
+.pipeline{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px;margin-bottom:80px;padding:0 20px}
+.pl{background:var(--s2);border:1px solid var(--b);border-radius:5px;padding:6px 12px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--g);white-space:nowrap}
+.pa{color:var(--b);font-size:14px;margin:0 1px}
+/* STATS */
+.stats{display:flex;justify-content:center;gap:48px;margin-bottom:100px;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-v{font-size:36px;font-weight:800;letter-spacing:-.03em;color:var(--tx)}
+.stat-v span{font-size:18px;font-weight:500;color:var(--g)}
+.stat-l{font-size:11px;color:var(--t3);margin-top:4px;font-family:'IBM Plex Mono',monospace}
+/* FEATURES */
+section{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 48px 80px}
+.sec-label{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:12px}
+.sec-title{font-size:clamp(26px,3vw,38px);font-weight:800;letter-spacing:-.025em;margin-bottom:14px}
+.sec-title span{color:var(--g)}
+.sec-desc{font-size:15px;color:var(--t2);max-width:560px;line-height:1.65;margin-bottom:48px}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:48px}
+.feat{background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:22px 24px;transition:border-color .2s}
+.feat:hover{border-color:rgba(0,229,160,.2)}
+.feat-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.feat-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+.feat-title{font-size:14px;font-weight:700;color:var(--tx);margin-bottom:6px}
+.feat-desc{font-size:12px;color:var(--t3);line-height:1.65}
+/* PRICING */
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:32px}
+.plan{background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:24px;position:relative;transition:all .2s}
+.plan:hover{border-color:rgba(0,229,160,.2)}
+.plan.popular{border-color:rgba(0,229,160,.3);background:linear-gradient(135deg,rgba(0,229,160,.04) 0%,var(--s1) 100%)}
+.plan-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.3);color:var(--g);font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:.06em;white-space:nowrap}
+.plan-name{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.plan-price{font-size:32px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px}
+.plan-price sup{font-size:16px;font-weight:500;vertical-align:top;margin-top:6px}
+.plan-period{font-size:11px;color:var(--t3);margin-bottom:16px;font-family:'IBM Plex Mono',monospace}
+.plan-limit{font-size:11px;color:var(--t2);margin-bottom:16px}
+.plan-features{list-style:none;margin-bottom:20px}
+.plan-features li{font-size:11px;color:var(--t2);padding:4px 0;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:6px}
+.plan-features li::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--g);flex-shrink:0}
+.plan-cta{display:block;text-align:center;padding:9px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;transition:all .15s;font-family:'Syne',sans-serif}
+.plan-cta-outline{background:transparent;border:1px solid var(--b);color:var(--t2)}
+.plan-cta-outline:hover{background:var(--s2);color:var(--tx)}
+.plan-cta-filled{background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.3);color:var(--g)}
+.plan-cta-filled:hover{background:rgba(0,229,160,.18)}
+/* CODE SNIPPET */
+.code-box{background:var(--s2);border:1px solid var(--b);border-radius:10px;overflow:hidden;margin-bottom:48px}
+.code-header{display:flex;align-items:center;gap:6px;padding:10px 16px;border-bottom:1px solid var(--b)}
+.code-dot{width:8px;height:8px;border-radius:50%}
+.code-title{font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-left:4px}
+.code-body{padding:20px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.8;overflow-x:auto}
+.c-comment{color:var(--t3)}.c-key{color:var(--bl)}.c-val{color:var(--g)}.c-str{color:var(--a)}.c-fn{color:var(--pu)}
+/* FOOTER */
+footer{position:relative;z-index:1;border-top:1px solid var(--b);padding:40px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:gap}
+.footer-left{font-size:11px;color:var(--t3);line-height:1.6}
+.footer-links{display:flex;gap:20px}
+.footer-links a{font-size:11px;color:var(--t3);text-decoration:none}
+.footer-links a:hover{color:var(--t2)}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+    MCP Security
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="/benchmarks">Benchmarks</a>
+    <a href="https://docs.mcpsecurity.dev">Docs</a>
+  </div>
+  <div class="nav-cta">
+    <a href="/login" class="btn-ghost">Sign in</a>
+    <a href="/cloud/start" class="btn-primary">Start free →</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">Zero-trust security for AI agents · v3.0.0</div>
+  <h1>Every tool call<br><span>authenticated, inspected,</span><br>policy-checked, logged.</h1>
+  <p class="hero-sub">MCP Security Gateway sits between your AI agents and their tools. 10-layer pipeline. DLP. HITL approvals. SOC 2 evidence. Shadow MCP discovery. Real-time WebSocket alerts.</p>
+  <div class="hero-actions">
+    <a href="/cloud/start" class="btn-hero btn-hero-primary">Start for free — $29/mo →</a>
+    <a href="https://github.com/antigravity/mcp-security-gateway" class="btn-hero btn-hero-ghost">View on GitHub</a>
+  </div>
+  <div class="hero-sub-note">No credit card for 14-day trial · SOC 2 Type II · GDPR compliant</div>
+
+  <div class="pipeline" style="margin-top:52px">
+    <div class="pl">AI Agent</div><div class="pa">→</div>
+    <div class="pl">1. Auth</div><div class="pa">→</div>
+    <div class="pl">2. Tenant</div><div class="pa">→</div>
+    <div class="pl">3. DLP + Inspect</div><div class="pa">→</div>
+    <div class="pl">4. Registry</div><div class="pa">→</div>
+    <div class="pl">5. RBAC</div><div class="pa">→</div>
+    <div class="pl">6. Anomaly</div><div class="pa">→</div>
+    <div class="pl">7. Replay</div><div class="pa">→</div>
+    <div class="pl">8. Lock</div><div class="pa">→</div>
+    <div class="pl">9. Forward</div><div class="pa">→</div>
+    <div class="pl">10. Audit</div><div class="pa">→</div>
+    <div class="pl">MCP Tool Server</div>
+  </div>
+</div>
+
+<div class="stats" style="position:relative;z-index:1;padding:0 48px">
+  <div class="stat"><div class="stat-v">10<span>layer</span></div><div class="stat-l">security pipeline</div></div>
+  <div class="stat"><div class="stat-v">&lt;5<span>ms</span></div><div class="stat-l">gateway overhead (p99)</div></div>
+  <div class="stat"><div class="stat-v">99.9<span>%</span></div><div class="stat-l">SLA uptime</div></div>
+  <div class="stat"><div class="stat-v">SOC<span> 2</span></div><div class="stat-l">automated evidence</div></div>
+</div>
+
+<section id="features">
+  <div class="sec-label">What it does</div>
+  <h2 class="sec-title">Everything your <span>AI security</span><br>team would build — prebuilt.</h2>
+  <p class="sec-desc">Ship in days not months. Every enterprise security requirement for AI agent infrastructure, handled.</p>
+
+  <div class="features-grid">
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(0,229,160,.08)"><svg style="color:var(--g)" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="feat-title">DLP + PII masking</div>
+      <div class="feat-desc">Scans every tool call and response. Masks SSNs, credit cards, API keys, PHI before AI sees them. HIPAA mode blocks all PHI.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(77,166,255,.08)"><svg style="color:var(--bl)" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div class="feat-title">Human-in-the-loop approvals</div>
+      <div class="feat-desc">High-risk operations pause for human approval. Approve/deny via dashboard or Slack. 15-minute TTL with auto-deny.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(155,114,255,.08)"><svg style="color:var(--pu)" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <div class="feat-title">SOC 2 evidence automation</div>
+      <div class="feat-desc">Generate a complete SOC 2 Type II evidence package at any time. 11 controls auto-documented. Auditors love this.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(255,71,87,.08)"><svg style="color:var(--r)" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
+      <div class="feat-title">Shadow MCP discovery</div>
+      <div class="feat-desc">Detect unauthorized AI agents already running in your org before you've even signed up. Best enterprise door-opener in the industry.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(255,184,48,.08)"><svg style="color:var(--a)" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+      <div class="feat-title">Real-time WebSocket alerts</div>
+      <div class="feat-desc">Live push to dashboard. No polling. See every allow/deny, DLP detection, and HITL request the moment it happens.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(0,229,160,.08)"><svg style="color:var(--g)" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg></div>
+      <div class="feat-title">A2A protocol support</div>
+      <div class="feat-desc">Full Google/Linux Foundation A2A spec. Agent-to-agent calls are authenticated, audited, and rate-limited just like human calls.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(77,166,255,.08)"><svg style="color:var(--bl)" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <div class="feat-title">IP allowlists + multi-admin</div>
+      <div class="feat-desc">Restrict gateway access to your CIDR ranges. Invite teammates with scoped roles: analyst, billing, viewer. No shared secrets.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(155,114,255,.08)"><svg style="color:var(--pu)" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-4-4h-1"/><circle cx="16" cy="7" r="4"/></svg></div>
+      <div class="feat-title">SCIM 2.0 provisioning</div>
+      <div class="feat-desc">Okta/Azure AD auto-provisions and deprovisions users. SSO group memberships auto-map to agent policies. Zero manual work.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-label">Quick start</div>
+  <h2 class="sec-title">Up in <span>60 seconds.</span></h2>
+  <p class="sec-desc">Point your AI agent at your gateway URL instead of the MCP server directly. That's it.</p>
+  <div class="code-box">
+    <div class="code-header"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div><span class="code-title">Python — LangChain integration</span></div>
+    <div class="code-body">
+<span class="c-comment"># Install</span><br>
+pip install mcpsecurity<br><br>
+<span class="c-comment"># Wrap your existing MCP client — one line change</span><br>
+<span class="c-key">from</span> mcpsecurity <span class="c-key">import</span> MCPSecurityClient<br><br>
+client = <span class="c-fn">MCPSecurityClient</span>(<br>
+&nbsp;&nbsp;gateway_url=<span class="c-str">"https://acme-corp.mcpsecurity.dev"</span>,<br>
+&nbsp;&nbsp;api_key=<span class="c-str">"mcpsg_your_api_key_here"</span>,<br>
+)<br><br>
+<span class="c-comment"># All tool calls now go through 10-layer security pipeline</span><br>
+result = <span class="c-key">await</span> client.<span class="c-fn">call_tool</span>(<span class="c-str">"read_file"</span>, {<span class="c-str">"path"</span>: <span class="c-str">"config.json"</span>})
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="sec-label">Pricing</div>
+  <h2 class="sec-title">Simple, <span>transparent</span> pricing.</h2>
+  <p class="sec-desc">No per-seat fees. No surprise overages. Pay for what you use.</p>
+  <div class="pricing-grid">
+    <div class="plan">
+      <div class="plan-name">Cloud</div>
+      <div class="plan-price"><sup>$</sup>29</div>
+      <div class="plan-period">/month · managed hosting</div>
+      <div class="plan-limit">5,000 API calls · 3 agents</div>
+      <ul class="plan-features">
+        <li>Zero DevOps — we manage it</li>
+        <li>Your subdomain.mcpsecurity.dev</li>
+        <li>Auto-SSL + auto-migrations</li>
+        <li>10-layer security pipeline</li>
+        <li>Real-time dashboard</li>
+      </ul>
+      <a href="/cloud/start" class="plan-cta plan-cta-outline">Start free trial →</a>
+    </div>
+    <div class="plan">
+      <div class="plan-name">Starter</div>
+      <div class="plan-price"><sup>$</sup>49</div>
+      <div class="plan-period">/month · self-hosted</div>
+      <div class="plan-limit">10,000 API calls · 5 agents</div>
+      <ul class="plan-features">
+        <li>Self-hosted on your infra</li>
+        <li>Docker Compose or K8s</li>
+        <li>All 10 security layers</li>
+        <li>Email + webhook alerts</li>
+        <li>Audit log + analytics</li>
+      </ul>
+      <a href="/login" class="plan-cta plan-cta-outline">Get started →</a>
+    </div>
+    <div class="plan popular">
+      <div class="plan-badge">MOST POPULAR</div>
+      <div class="plan-name">Growth</div>
+      <div class="plan-price"><sup>$</sup>199</div>
+      <div class="plan-period">/month · $0.005/call overage</div>
+      <div class="plan-limit">100,000 API calls · 25 agents</div>
+      <ul class="plan-features">
+        <li>Everything in Starter</li>
+        <li>DLP + PII masking</li>
+        <li>SIEM forwarding</li>
+        <li>Policy AI assistant</li>
+        <li>Multi-region (EU/APAC)</li>
+      </ul>
+      <a href="/login" class="plan-cta plan-cta-filled">Start Growth →</a>
+    </div>
+    <div class="plan">
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-price"><sup>$</sup>999</div>
+      <div class="plan-period">/month · custom available</div>
+      <div class="plan-limit">1,000,000 API calls · 200 agents</div>
+      <ul class="plan-features">
+        <li>Everything in Growth</li>
+        <li>HITL human approvals</li>
+        <li>SOC 2 evidence export</li>
+        <li>Shadow MCP discovery</li>
+        <li>SCIM + SSO group mapping</li>
+        <li>IP allowlists + multi-admin</li>
+        <li>Hash-chained audit log</li>
+        <li>99.9% SLA + dedicated support</li>
+      </ul>
+      <a href="mailto:enterprise@mcpsecurity.dev" class="plan-cta plan-cta-outline">Contact sales →</a>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace">All plans include 14-day free trial · No credit card required · Cancel anytime</p>
+</section>
+
+<footer>
+  <div class="footer-left">
+    <div style="font-weight:700;font-size:13px;margin-bottom:4px">MCP Security Gateway</div>
+    <div>Zero-trust security proxy for AI agents · v3.0.0 · Built by Antigravity</div>
+  </div>
+  <div class="footer-links">
+    <a href="https://docs.mcpsecurity.dev">Docs</a>
+    <a href="/benchmarks">Benchmarks</a>
+    <a href="https://github.com/antigravity/mcp-security-gateway">GitHub</a>
+    <a href="mailto:security@mcpsecurity.dev">Security</a>
+    <a href="mailto:enterprise@mcpsecurity.dev">Enterprise</a>
+  </div>
+</footer>
+</body>
+</html>

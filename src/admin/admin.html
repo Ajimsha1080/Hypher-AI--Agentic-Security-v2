@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP Security  Super Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#060809;--s1:#0b0f12;--s2:#111619;--s3:#1a2028;--b:#1e262d;--b2:#2a343d;--tx:#e8f0f7;--t2:#7a9ab0;--t3:#3a5060;--g:#00e5a0;--r:#ff4757;--a:#ffb830;--bl:#4da6ff;--pu:#9b72ff}
+html,body{height:100%;overflow-x:hidden;font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx)}
+.layout{display:flex;min-height:100vh}
+.sb{width:210px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--b);padding:16px 10px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{padding:0 8px 14px;border-bottom:1px solid var(--b);margin-bottom:12px}
+.logo-n{font-size:11px;font-weight:800;color:var(--r);letter-spacing:.08em}
+.logo-v{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-top:2px}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;font-size:11px;font-weight:500;color:var(--t2);cursor:pointer;transition:all .15s;margin-bottom:1px;border:1px solid transparent}
+.ni svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+.ni:hover{background:var(--s2);color:var(--tx)}
+.ni.on{background:rgba(255,71,87,.1);color:var(--r);border-color:rgba(255,71,87,.2)}
+.ni-hdr{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);padding:8px 10px 3px;font-family:'IBM Plex Mono',monospace}
+.ni-sep{height:1px;background:var(--b);margin:6px 4px}
+.main{flex:1;padding:24px 28px;overflow-y:auto;min-width:0}
+.pg-t{font-size:20px;font-weight:800;margin-bottom:4px}
+.pg-t span{color:var(--r)}
+.pg-s{font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-bottom:22px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.mc{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:14px;position:relative;overflow:hidden}
+.mc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac,var(--r));opacity:.6}
+.mc.cr{--ac:var(--r)}.mc.cg{--ac:var(--g)}.mc.cb{--ac:var(--bl)}.mc.ca{--ac:var(--a)}.mc.cp{--ac:var(--pu)}
+.ml{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:7px}
+.mv{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:2px}
+.ms{font-size:10px;color:var(--t2)}
+.card{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:16px;margin-bottom:12px}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--b)}
+.ct{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t2)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:5px;font-size:10px;font-weight:700;font-family:'Syne',sans-serif;border:1px solid var(--b2);background:var(--s2);color:var(--t2);cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--s3);color:var(--tx)}
+.btn.dr{background:rgba(255,71,87,.1);color:var(--r);border-color:rgba(255,71,87,.2)}
+.btn.dg{background:rgba(0,229,160,.08);color:var(--g);border-color:rgba(0,229,160,.2)}
+.btn.db{background:rgba(77,166,255,.08);color:var(--bl);border-color:rgba(77,166,255,.2)}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);padding:0 0 7px;text-align:left;border-bottom:1px solid var(--b)}
+.tbl td{padding:8px 0;border-bottom:1px solid var(--b);color:var(--t2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{color:var(--tx)}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:10px}
+.badge{display:inline-flex;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.04em}
+.bg{background:rgba(0,229,160,.1);color:var(--g);border:1px solid rgba(0,229,160,.18)}
+.br{background:rgba(255,71,87,.1);color:var(--r);border:1px solid rgba(255,71,87,.18)}
+.ba{background:rgba(255,184,48,.1);color:var(--a);border:1px solid rgba(255,184,48,.18)}
+.bi{background:rgba(77,166,255,.1);color:var(--bl);border:1px solid rgba(77,166,255,.18)}
+.bp{background:rgba(155,114,255,.1);color:var(--pu);border:1px solid rgba(155,114,255,.18)}
+.ub-track{width:80px;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;flex-shrink:0;display:inline-block}
+.ub-fill{height:100%;border-radius:2px}
+.empty{text-align:center;padding:24px;color:var(--t3);font-size:11px}
+input,select,textarea{background:var(--s3);border:1px solid var(--b);border-radius:5px;color:var(--tx);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 10px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--r)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sb">
+  <div class="logo"><div class="logo-n"> SUPER ADMIN</div><div class="logo-v">MCP Security Gateway v3.3.0</div><button class="btn" style="margin-top:10px;width:100%;justify-content:center" onclick="logout()">Logout</button></div>
+
+  <div class="ni-hdr">Platform</div>
+  <div class="ni on" onclick="sv('overview')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Overview</div>
+  <div class="ni" onclick="sv('tenants')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Tenants</div>
+  <div class="ni" onclick="sv('plan-limits')"><svg viewBox="0 0 24 24"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><path d="M3 7h18"/></svg>Plan limits</div>
+  <div class="ni" onclick="sv('revenue')"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Revenue</div>
+  <div class="ni" onclick="sv('invoices')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Invoices</div>
+
+  <div class="ni-sep"></div>
+  <div class="ni-hdr">Security</div>
+  <div class="ni" onclick="sv('security-events')"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Security events</div>
+  <div class="ni" onclick="sv('anomaly-global')"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Global anomalies</div>
+  <div class="ni" onclick="sv('injection-global')"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Injection log</div>
+  <div class="ni" onclick="sv('hitl-queue')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>HITL queue</div>
+
+  <div class="ni-sep"></div>
+  <div class="ni-hdr">Infrastructure</div>
+  <div class="ni" onclick="sv('registry')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Registry</div>
+  <div class="ni" onclick="sv('ml-profiles')"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>ML profiles</div>
+  <div class="ni" onclick="sv('geo-admin')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Geo blocks</div>
+  <div class="ni" onclick="sv('rate-limits-admin')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Rate limits</div>
+  <div class="ni" onclick="sv('system')"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>System health</div>
+</aside>
+
+<main class="main">
+
+<!--  OVERVIEW  -->
+<div id="vw-overview">
+  <div class="pg-t">Admin <span>Overview</span></div>
+  <div class="pg-s">super-admin  all tenants  real-time</div>
+  <div class="g4" id="admin-metrics">
+  <div class="mc cg"><div class="ml">MRR</div><div class="mv" style="color:var(--g)">$0</div><div class="ms">pricing source</div></div>
+  <div class="mc cb"><div class="ml">Active tenants</div><div class="mv" style="color:var(--bl)">0</div><div class="ms">organizations</div></div>
+  <div class="mc ca"><div class="ml">API calls 24h</div><div class="mv" style="color:var(--a)">0</div><div class="ms">across all tenants</div></div>
+  <div class="mc cp"><div class="ml">Security events 24h</div><div class="mv" style="color:var(--pu)">0</div><div class="ms">anomalies + injections</div></div>
+  </div>
+  <div class="g2">
+  <div class="card">
+  <div class="ch"><span class="ct">Top tenants by usage</span></div>
+  <table class="tbl" id="top-tenants-tbl">
+  <thead><tr><th>Tenant</th><th>Plan</th><th>Calls/mo</th><th>Usage</th></tr></thead>
+  <tbody><tr><td colspan="4" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Revenue by plan</span></div>
+  <div style="position:relative;height:200px"><canvas id="rev-chart" role="img" aria-label="Revenue by plan donut chart"></canvas></div>
+  </div>
+  </div>
+  <div class="g2">
+  <div class="card">
+  <div class="ch"><span class="ct">Security events (24h)</span></div>
+  <div style="position:relative;height:160px"><canvas id="events-chart" role="img" aria-label="Security events bar chart"></canvas></div>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Platform health</span></div>
+  <div id="platform-health" style="font-size:12px;color:var(--t3);padding:20px;text-align:center">Loading...</div>
+  </div>
+  </div>
+</div>
+
+<!--  TENANTS  -->
+<div id="vw-tenants" style="display:none">
+  <div class="pg-t">Tenant <span>Management</span></div>
+  <div class="pg-s">all organizations  suspend  plan changes  impersonate</div>
+  <div class="g3" style="margin-bottom:16px" id="tenant-stats">
+  <div class="mc cg"><div class="ml">Active</div><div class="mv" style="color:var(--g)">0</div><div class="ms">organizations</div></div>
+  <div class="mc ca"><div class="ml">On trial</div><div class="mv" style="color:var(--a)">0</div><div class="ms">14-day trials</div></div>
+  <div class="mc cr"><div class="ml">Past due</div><div class="mv" style="color:var(--r)">0</div><div class="ms">payment overdue</div></div>
+  </div>
+  <div class="card">
+  <div class="ch">
+  <span class="ct">All tenants</span>
+  <div style="display:flex;gap:6px">
+  <input id="search-tenants" placeholder="Search name or email..." style="width:180px" oninput="filterTenants()">
+  <select id="filter-plan" onchange="filterTenants()"><option value="">All plans</option><option value="starter">Starter</option><option value="growth">Growth</option><option value="enterprise">Enterprise</option></select>
+  <select id="filter-status" onchange="filterTenants()"><option value="">All status</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="trial">Trial</option></select>
+  </div>
+  </div>
+  <table class="tbl" id="tenants-tbl">
+  <thead><tr><th>Name</th><th>Plan</th><th>Status</th><th>API calls</th><th>MRR</th><th>Created</th><th>Actions</th></tr></thead>
+  <tbody id="tenants-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!--  REVENUE  -->
+<div id="vw-plan-limits" style="display:none">
+  <div class="pg-t">Plan <span>Limits</span></div>
+  <div class="pg-s">default plan limits  enterprise contract overrides  blocked action audit</div>
+  <div class="g3" style="margin-bottom:16px" id="limit-stats">
+  <div class="mc cb"><div class="ml">Plans</div><div class="mv" style="color:var(--bl)">3</div><div class="ms">starter / growth / enterprise</div></div>
+  <div class="mc ca"><div class="ml">Overrides</div><div class="mv" style="color:var(--a)" id="pl-overrides-count"></div><div class="ms">custom contract limits</div></div>
+  <div class="mc cr"><div class="ml">Blocked</div><div class="mv" style="color:var(--r)" id="pl-block-count"></div><div class="ms">recent limit blocks</div></div>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Default limits per plan</span><button class="btn" onclick="loadPlanLimits()">Refresh</button></div>
+  <table class="tbl" id="plan-limits-tbl">
+  <thead><tr><th>Plan</th><th>Channels</th><th>Rules</th><th>Agents</th><th>Integrations</th><th>Exports</th><th>Retention</th><th>Team</th><th>ML/HITL</th><th>Action</th></tr></thead>
+  <tbody id="plan-limits-body"><tr><td colspan="10" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+  <div class="card" id="enterprise-readiness-card"><div class="empty">Loading enterprise readiness...</div></div>
+  <div class="g2">
+  <div class="card">
+  <div class="ch">
+  <span class="ct">Tenant contract override</span>
+  <select id="limit-tenant-select" onchange="loadTenantLimitDetail(this.value)" style="width:260px"><option value="">Select tenant...</option></select>
+  </div>
+  <div id="tenant-limit-detail"><div class="empty">Select a tenant to edit custom enterprise limits.</div></div>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Recent plan-limit blocks</span></div>
+  <table class="tbl">
+  <thead><tr><th>Time</th><th>Tenant</th><th>Feature</th><th>Used</th><th>Action</th></tr></thead>
+  <tbody id="plan-limit-blocks-body"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+  </div>
+</div>
+
+<div id="vw-revenue" style="display:none">
+  <div class="pg-t">Revenue <span>Dashboard</span></div>
+  <div class="pg-s">MRR  ARR  ARPU  churn  overage</div>
+  <div class="g4" id="rev-metrics">
+  <div class="mc cg"><div class="ml">MRR</div><div class="mv" style="color:var(--g)">$0</div><div class="ms">pricing source</div></div>
+  <div class="mc cb"><div class="ml">ARR</div><div class="mv" style="color:var(--bl)">$0</div><div class="ms">annual run rate</div></div>
+  <div class="mc ca"><div class="ml">ARPU</div><div class="mv" style="color:var(--a)">$0</div><div class="ms">avg rev per user</div></div>
+  <div class="mc cp"><div class="ml">Overage (mo)</div><div class="mv" style="color:var(--pu)">$0</div><div class="ms">extra call revenue</div></div>
+  </div>
+  <div class="g2">
+  <div class="card">
+  <div class="ch"><span class="ct">Revenue by plan</span></div>
+  <table class="tbl" id="rev-tbl">
+  <thead><tr><th>Plan</th><th>Tenants</th><th>Price</th><th>Revenue</th><th>% MRR</th></tr></thead>
+  <tbody id="rev-body"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Break-even analysis</span></div>
+  <div id="breakeven" style="font-size:12px;color:var(--t2);line-height:1.8">Loading...</div>
+  </div>
+  </div>
+  <div class="card">
+  <div class="ch">
+  <span class="ct">Unit Economics / Margin by Plan</span>
+  <span class="badge br">Super Admin only</span>
+  </div>
+  <div id="unit-econ-summary" class="g4" style="margin-bottom:12px">
+  <div class="mc cg"><div class="ml">Gross margin</div><div class="mv" style="color:var(--g)">--</div><div class="ms">all plans</div></div>
+  <div class="mc cb"><div class="ml">Revenue</div><div class="mv" style="color:var(--bl)">$0</div><div class="ms">month to date</div></div>
+  <div class="mc ca"><div class="ml">COGS</div><div class="mv" style="color:var(--a)">$0</div><div class="ms">allocated cost</div></div>
+  <div class="mc cp"><div class="ml">Profit</div><div class="mv" style="color:var(--pu)">$0</div><div class="ms">gross profit</div></div>
+  </div>
+  <table class="tbl" id="unit-econ-tbl">
+  <thead><tr><th>Plan</th><th>Tenants</th><th>Calls</th><th>Revenue</th><th>COGS</th><th>Gross profit</th><th>Margin</th></tr></thead>
+  <tbody id="unit-econ-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+  </table>
+  <div id="unit-econ-assumptions" class="mono" style="color:var(--t3);margin-top:12px;line-height:1.7"></div>
+  </div>
+</div>
+
+<!--  INVOICES  -->
+<div id="vw-invoices" style="display:none">
+  <div class="pg-t">Invoice <span>History</span></div>
+  <div class="pg-s">all tenants  Stripe invoices  overage charges</div>
+  <div class="g3" style="margin-bottom:16px" id="invoice-stats">
+  <div class="mc cg"><div class="ml">Paid (30d)</div><div class="mv" style="color:var(--g)">$0</div><div class="ms">collected revenue</div></div>
+  <div class="mc cr"><div class="ml">Overdue</div><div class="mv" style="color:var(--r)">$0</div><div class="ms">unpaid invoices</div></div>
+  <div class="mc ca"><div class="ml">Overage (30d)</div><div class="mv" style="color:var(--a)">$0</div><div class="ms">extra call charges</div></div>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Recent invoices  all tenants</span><button class="btn" onclick="loadInvoices()">Refresh</button></div>
+  <table class="tbl" id="invoices-tbl">
+  <thead><tr><th>Tenant</th><th>Invoice ID</th><th>Amount</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
+  <tbody id="invoices-body"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!--  SECURITY EVENTS  -->
+<div id="vw-security-events" style="display:none">
+  <div class="pg-t">Security <span>Events</span></div>
+  <div class="pg-s">all tenants  anomalies  injections  HITL triggers  DLP  geo-blocks</div>
+  <div class="g4" id="sec-metrics" style="margin-bottom:16px">
+  <div class="mc cr"><div class="ml">Anomalies (24h)</div><div class="mv" style="color:var(--r)" id="sec-anomalies"></div><div class="ms">ML flags</div></div>
+  <div class="mc ca"><div class="ml">Injections (24h)</div><div class="mv" style="color:var(--a)" id="sec-injections"></div><div class="ms">prompt attacks</div></div>
+  <div class="mc cb"><div class="ml">HITL triggered</div><div class="mv" style="color:var(--bl)" id="sec-hitl"></div><div class="ms">approval requests</div></div>
+  <div class="mc cp"><div class="ml">DLP blocks</div><div class="mv" style="color:var(--pu)" id="sec-dlp"></div><div class="ms">PII detections</div></div>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Security event feed  all tenants</span><button class="btn" onclick="loadSecurityEvents()">Refresh</button></div>
+  <table class="tbl" id="sec-tbl">
+  <thead><tr><th>Time</th><th>Tenant</th><th>Agent</th><th>Event type</th><th>Tool</th><th>Severity</th><th>Detail</th></tr></thead>
+  <tbody id="sec-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!--  GLOBAL ANOMALIES  -->
+<div id="vw-anomaly-global" style="display:none">
+  <div class="pg-t">Global <span>Anomaly Monitor</span></div>
+  <div class="pg-s">cross-tenant ML anomaly events  score distribution  top offending agents</div>
+  <div class="g4" style="margin-bottom:16px">
+  <div class="mc cr"><div class="ml">Blocked (24h)</div><div class="mv" style="color:var(--r)" id="ag-blocked"></div><div class="ms">action=block</div></div>
+  <div class="mc ca"><div class="ml">Flagged (24h)</div><div class="mv" style="color:var(--a)" id="ag-flagged"></div><div class="ms">action=flag</div></div>
+  <div class="mc cp"><div class="ml">Avg score</div><div class="mv" style="color:var(--pu)" id="ag-avg-score"></div><div class="ms">mean anomaly score</div></div>
+  <div class="mc cb"><div class="ml">False positives</div><div class="mv" style="color:var(--bl)" id="ag-fp"></div><div class="ms">marked by users</div></div>
+  </div>
+  <div class="g2">
+  <div class="card">
+  <div class="ch"><span class="ct">Recent anomaly events  all tenants</span><button class="btn" onclick="loadGlobalAnomalies()">Refresh</button></div>
+  <table class="tbl" id="anomaly-global-tbl">
+  <thead><tr><th>Time</th><th>Tenant</th><th>Agent</th><th>Tool</th><th>Score</th><th>Action</th><th>Model</th></tr></thead>
+  <tbody id="anomaly-global-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Top anomalous agents (7d)</span></div>
+  <div id="top-anomalous-agents" style="font-size:12px;color:var(--t3);text-align:center;padding:20px">Loading...</div>
+  </div>
+  </div>
+</div>
+
+<!--  INJECTION LOG (GLOBAL)  -->
+<div id="vw-injection-global" style="display:none">
+  <div class="pg-t">Global <span>Injection Log</span></div>
+  <div class="pg-s">all tenants  prompt injection attempts  pattern analytics</div>
+  <div class="g4" style="margin-bottom:16px">
+  <div class="mc cr"><div class="ml">Total (24h)</div><div class="mv" style="color:var(--r)" id="ig-total"></div><div class="ms">injection attempts</div></div>
+  <div class="mc ca"><div class="ml">Top pattern</div><div class="mv" style="color:var(--a);font-size:13px" id="ig-pattern"></div><div class="ms">most triggered</div></div>
+  <div class="mc cb"><div class="ml">Affected tenants</div><div class="mv" style="color:var(--bl)" id="ig-tenants"></div><div class="ms">orgs under attack</div></div>
+  <div class="mc cp"><div class="ml">Unique agents</div><div class="mv" style="color:var(--pu)" id="ig-agents"></div><div class="ms">flagged agents</div></div>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Injection events  all tenants</span><button class="btn" onclick="loadGlobalInjections()">Refresh</button></div>
+  <table class="tbl" id="inj-global-tbl">
+  <thead><tr><th>Time</th><th>Tenant</th><th>Agent</th><th>Tool</th><th>Pattern</th><th>Arg key</th><th>Preview</th></tr></thead>
+  <tbody id="inj-global-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!--  HITL QUEUE  -->
+<div id="vw-hitl-queue" style="display:none">
+  <div class="pg-t">HITL <span>Approval Queue</span></div>
+  <div class="pg-s">all tenants  pending approvals  expired  cross-tenant HITL analytics</div>
+  <div class="g4" style="margin-bottom:16px">
+  <div class="mc ca"><div class="ml">Pending</div><div class="mv" style="color:var(--a)" id="hq-pending"></div><div class="ms">awaiting decision</div></div>
+  <div class="mc cg"><div class="ml">Approved (7d)</div><div class="mv" style="color:var(--g)" id="hq-approved"></div><div class="ms">calls approved</div></div>
+  <div class="mc cr"><div class="ml">Denied (7d)</div><div class="mv" style="color:var(--r)" id="hq-denied"></div><div class="ms">calls blocked</div></div>
+  <div class="mc cb"><div class="ml">Avg decision time</div><div class="mv" style="color:var(--bl)" id="hq-avg-time"></div><div class="ms">minutes</div></div>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Pending HITL requests  all tenants</span><button class="btn" onclick="loadHitlQueue()">Refresh</button></div>
+  <table class="tbl" id="hitl-queue-tbl">
+  <thead><tr><th>Tenant</th><th>Agent</th><th>Tool</th><th>Risk</th><th>Reason</th><th>Waiting</th><th>Actions</th></tr></thead>
+  <tbody id="hitl-queue-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!--  REGISTRY  -->
+<div id="vw-registry" style="display:none">
+  <div class="pg-t">Registry <span>Moderation</span></div>
+  <div class="pg-s">approve  block  trust scoring  reported servers</div>
+  <div class="card">
+  <div class="ch"><span class="ct">All registered MCP servers</span></div>
+  <table class="tbl" id="reg-tbl">
+  <thead><tr><th>Server</th><th>Trust</th><th>Score</th><th>Reports</th><th>Owner</th><th>Scope</th><th>Actions</th></tr></thead>
+  <tbody id="reg-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!--  ML PROFILES  -->
+<div id="vw-ml-profiles" style="display:none">
+  <div class="pg-t">ML Anomaly <span>Profiles (Global)</span></div>
+  <div class="pg-s">all tenants  profile health  bootstrap status  rebuild triggers</div>
+  <div class="g3" style="margin-bottom:16px">
+  <div class="mc cg"><div class="ml">Agents with profiles</div><div class="mv" style="color:var(--g)" id="mlg-profiles"></div><div class="ms">trained ML models</div></div>
+  <div class="mc ca"><div class="ml">In bootstrap</div><div class="mv" style="color:var(--a)" id="mlg-bootstrap"></div><div class="ms">under 20 calls</div></div>
+  <div class="mc cb"><div class="ml">High confidence</div><div class="mv" style="color:var(--bl)" id="mlg-high"></div><div class="ms">500+ calls</div></div>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Agent ML profiles  all tenants</span>
+  <button class="btn dg" onclick="triggerRebuild()">Trigger global rebuild</button>
+  </div>
+  <table class="tbl" id="mlg-tbl">
+  <thead><tr><th>Tenant</th><th>Agent</th><th>Sample size</th><th>Confidence</th><th>Top tools</th><th>Last updated</th></tr></thead>
+  <tbody id="mlg-body"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!--  GEO ADMIN  -->
+<div id="vw-geo-admin" style="display:none">
+  <div class="pg-t">Geo-blocking <span>Admin</span></div>
+  <div class="pg-s">global geo rules  per-tenant overrides  blocked traffic analytics</div>
+  <div class="g3" style="margin-bottom:16px">
+  <div class="mc cr"><div class="ml">Geo-blocked (24h)</div><div class="mv" style="color:var(--r)" id="geo-admin-blocked"></div><div class="ms">requests denied</div></div>
+  <div class="mc ca"><div class="ml">Countries blocked</div><div class="mv" style="color:var(--a)" id="geo-admin-countries"></div><div class="ms">unique countries</div></div>
+  <div class="mc cb"><div class="ml">Tenants with rules</div><div class="mv" style="color:var(--bl)" id="geo-admin-tenants"></div><div class="ms">geo-enabled orgs</div></div>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">Geo block rules  all tenants</span><button class="btn" onclick="loadGeoAdmin()">Refresh</button></div>
+  <table class="tbl" id="geo-admin-tbl">
+  <thead><tr><th>Tenant</th><th>Country</th><th>Mode</th><th>Description</th><th>Blocked (24h)</th><th>Created</th></tr></thead>
+  <tbody id="geo-admin-body"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!--  RATE LIMITS ADMIN  -->
+<div id="vw-rate-limits-admin" style="display:none">
+  <div class="pg-t">Tool Rate Limits <span>Admin</span></div>
+  <div class="pg-s">global defaults  per-tenant overrides  enforcement analytics</div>
+  <div class="g3" style="margin-bottom:16px">
+  <div class="mc ca"><div class="ml">Active rules</div><div class="mv" style="color:var(--a)" id="rla-rules"></div><div class="ms">tool rate limit rules</div></div>
+  <div class="mc cr"><div class="ml">Throttled (1h)</div><div class="mv" style="color:var(--r)" id="rla-throttled"></div><div class="ms">rate-limited calls</div></div>
+  <div class="mc cb"><div class="ml">Blocked (1h)</div><div class="mv" style="color:var(--bl)" id="rla-blocked"></div><div class="ms">hard-blocked calls</div></div>
+  </div>
+  <div class="card">
+  <div class="ch"><span class="ct">All tool rate limit rules</span><button class="btn" onclick="loadRateLimitsAdmin()">Refresh</button></div>
+  <table class="tbl" id="rla-tbl">
+  <thead><tr><th>Tenant</th><th>Tool</th><th>Max calls</th><th>Window</th><th>Action</th><th>Hits (1h)</th></tr></thead>
+  <tbody id="rla-body"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!--  SYSTEM  -->
+<div id="vw-system" style="display:none">
+  <div class="pg-t">System <span>Health</span></div>
+  <div class="pg-s">DB  Redis  memory  top tools  cron status</div>
+  <div class="card" id="sys-card"><div class="empty">Loading...</div></div>
+</div>
+
+</main>
+</div>
+
+<script>
+const H={'Content-Type':'application/json'};
+async function api(path){try{const r=await fetch(path,{headers:H,credentials:'same-origin'});if(r.status===401){location.href='/admin';return null}if(!r.ok)throw 0;return await r.json()}catch{return null}}
+async function post(path,body){try{const r=await fetch(path,{method:'POST',headers:H,credentials:'same-origin',body:JSON.stringify(body)});if(r.status===401){location.href='/admin';return null}return await r.json()}catch{return null}}
+async function put(path,body){try{const r=await fetch(path,{method:'PUT',headers:H,credentials:'same-origin',body:JSON.stringify(body)});if(r.status===401){location.href='/admin';return null}return await r.json()}catch{return null}}
+async function del(path){try{const r=await fetch(path,{method:'DELETE',headers:H,credentials:'same-origin'});if(r.status===401){location.href='/admin';return null}return await r.json()}catch{return null}}
+async function logout(){await post('/admin/logout',{});location.href='/admin'}
+
+const ALL_VIEWS=['overview','tenants','plan-limits','revenue','invoices','security-events','anomaly-global','injection-global','hitl-queue','registry','ml-profiles','geo-admin','rate-limits-admin','system'];
+
+function sv(n){
+  ALL_VIEWS.forEach(v=>{const el=document.getElementById('vw-'+v);if(el)el.style.display=v===n?'':'none';});
+  document.querySelectorAll('.ni').forEach(el=>el.classList.toggle('on',el.getAttribute('onclick')?.includes("'"+n+"'")));
+  const loaders={overview:loadOverview,tenants:loadTenants,'plan-limits':loadPlanLimits,revenue:loadRevenue,invoices:loadInvoices,'security-events':loadSecurityEvents,'anomaly-global':loadGlobalAnomalies,'injection-global':loadGlobalInjections,'hitl-queue':loadHitlQueue,registry:loadRegistry,'ml-profiles':loadMLProfiles,'geo-admin':loadGeoAdmin,'rate-limits-admin':loadRateLimitsAdmin,system:loadSystem};
+  if(loaders[n])loaders[n]();
+}
+
+let allTenants=[];
+
+//  OVERVIEW 
+async function loadOverview(){
+  const[stats,sec]=await Promise.all([api('/admin/stats'),api('/admin/security-events?hours=24')]);
+  if(!stats)return;
+  window.ADMIN_PLAN_PRICES=stats.planPrices||window.ADMIN_PLAN_PRICES||{starter:49,growth:199,enterprise:999};
+  const mrr=stats.revenue?.mrr_usd||0;
+  const pricingLabel=stats.revenue?.pricing_source==='defaults'?'default pricing':'configured pricing';
+  const tenants=stats.revenue?.active_tenants||0;
+  const calls=parseInt(stats.calls24h?.total||0, 10);
+  const secEvents=(sec?.events||[]).length;
+  document.getElementById('admin-metrics').innerHTML=`
+  <div class="mc cg"><div class="ml">MRR</div><div class="mv" style="color:var(--g)">$${Math.round(mrr).toLocaleString()}</div><div class="ms">${pricingLabel}</div></div>
+  <div class="mc cb"><div class="ml">Active tenants</div><div class="mv" style="color:var(--bl)">${tenants}</div><div class="ms">organizations</div></div>
+  <div class="mc ca"><div class="ml">API calls 24h</div><div class="mv" style="color:var(--a)">${calls.toLocaleString()}</div><div class="ms">all tenants</div></div>
+  <div class="mc cp"><div class="ml">Security events 24h</div><div class="mv" style="color:var(--pu)">${secEvents}</div><div class="ms">anomalies + injections</div></div>`;
+  const tbody=document.querySelector('#top-tenants-tbl tbody');
+  tbody.innerHTML=(stats.topTenants||[]).map(t=>{const pct=Math.min(100,Math.round((t.api_calls_this_month/(t.api_calls_limit||1))*100));const col=pct>80?'var(--r)':pct>50?'var(--a)':'var(--g)';return`<tr><td style="color:var(--tx);font-weight:500">${t.name}</td><td><span class="badge ${t.plan==='enterprise'?'bp':t.plan==='growth'?'bi':'bg'}">${t.plan}</span></td><td class="mono">${parseInt(t.api_calls_this_month||0, 10).toLocaleString()}</td><td><div style="display:flex;align-items:center;gap:6px"><div class="ub-track"><div class="ub-fill" style="width:${pct}%;background:${col}"></div></div><span style="font-size:9px;color:${col}">${pct}%</span></div></td></tr>`;}).join('')||'<tr><td colspan="4" class="empty">No tenants yet</td></tr>';
+  const plans=stats.tenants||[];
+  if(window._revChart)window._revChart.destroy();
+  window._revChart=new Chart(document.getElementById('rev-chart'),{type:'doughnut',data:{labels:plans.map(p=>p.plan),datasets:[{data:plans.map(p=>parseInt(p.cnt, 10)),backgroundColor:['#4da6ff','#9b72ff','#00e5a0'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#7a9ab0',font:{size:10},boxWidth:8}}}}});
+  const evTypes=['anomaly','injection','dlp','hitl'];const evData=evTypes.map(t=>(sec?.events||[]).filter(e=>e.event_type?.includes(t)).length);
+  if(window._evChart)window._evChart.destroy();
+  window._evChart=new Chart(document.getElementById('events-chart'),{type:'bar',data:{labels:evTypes,datasets:[{data:evData,backgroundColor:['#ff4757','#ffb830','#9b72ff','#4da6ff'],borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#3a5060',font:{size:9}}},y:{ticks:{color:'#3a5060',font:{size:9}}}}}});
+  const health=await api('/health/ready');
+  document.getElementById('platform-health').innerHTML=health?`
+  <div style="display:grid;gap:6px;text-align:left">
+  <div style="display:flex;justify-content:space-between;font-size:11px"><span>Database</span><span style="color:${health.db==='ok'?'var(--g)':'var(--r)'}">${health.db||'unknown'}</span></div>
+  <div style="display:flex;justify-content:space-between;font-size:11px"><span>Redis</span><span style="color:${health.redis==='ok'?'var(--g)':'var(--r)'}">${health.redis||'unknown'}</span></div>
+  <div style="display:flex;justify-content:space-between;font-size:11px"><span>Uptime</span><span style="color:var(--g)">${Math.floor((health.uptime||0)/3600)}h ${Math.floor(((health.uptime||0)%3600)/60)}m</span></div>
+  <div style="display:flex;justify-content:space-between;font-size:11px"><span>Version</span><span class="mono">v3.3.0</span></div>
+  </div>`:'<span style="color:var(--r)">Health check failed</span>';
+}
+
+//  TENANTS 
+async function loadTenants(){
+  const[d,stats]=await Promise.all([api('/admin/tenants'),api('/admin/stats')]);
+  window.ADMIN_PLAN_PRICES=stats?.planPrices||window.ADMIN_PLAN_PRICES||{starter:49,growth:199,enterprise:999};
+  allTenants=d?.tenants||[];
+  const active=allTenants.filter(t=>t.active&&!t.trial).length;
+  const trial=allTenants.filter(t=>t.trial_expires_at&&new Date(t.trial_expires_at)>new Date()).length;
+  const pastDue=allTenants.filter(t=>t.subscription_status==='past_due').length;
+  document.getElementById('tenant-stats').innerHTML=`
+  <div class="mc cg"><div class="ml">Active</div><div class="mv" style="color:var(--g)">${active}</div><div class="ms">organizations</div></div>
+  <div class="mc ca"><div class="ml">On trial</div><div class="mv" style="color:var(--a)">${trial}</div><div class="ms">14-day trials</div></div>
+  <div class="mc cr"><div class="ml">Past due</div><div class="mv" style="color:var(--r)">${pastDue}</div><div class="ms">payment overdue</div></div>`;
+  renderTenants(allTenants);
+}
+function renderTenants(tenants){
+  const prices=window.ADMIN_PLAN_PRICES||{starter:49,growth:199,enterprise:999};
+  document.getElementById('tenants-body').innerHTML=tenants.map(t=>`<tr>
+  <td><div style="font-weight:500;color:var(--tx)">${t.name}</div><div class="mono" style="color:var(--t3)">${t.billing_email||''}</div></td>
+  <td><span class="badge ${t.plan==='enterprise'?'bp':t.plan==='growth'?'bi':'bg'}">${t.plan}</span></td>
+  <td><span class="badge ${t.active?'bg':'br'}">${t.subscription_status||'active'}</span></td>
+  <td class="mono">${parseInt(t.api_calls_this_month||0, 10).toLocaleString()}</td>
+  <td style="color:var(--g)">$${prices[t.plan]||0}/mo</td>
+  <td class="mono" style="color:var(--t3)">${new Date(t.created_at).toLocaleDateString()}</td>
+  <td style="display:flex;gap:4px;padding:8px 0">
+  ${t.active?`<button class="btn dr" onclick="suspend('${t.id}')">Suspend</button>`:`<button class="btn dg" onclick="unsuspend('${t.id}')">Restore</button>`}
+  <button class="btn db" onclick="changePlan('${t.id}','${t.plan}')">Plan</button>
+  </td>
+  </tr>`).join('')||'<tr><td colspan="7" class="empty">No tenants</td></tr>';
+}
+function filterTenants(){
+  const q=document.getElementById('search-tenants').value.toLowerCase();
+  const plan=document.getElementById('filter-plan').value;
+  const status=document.getElementById('filter-status').value;
+  renderTenants(allTenants.filter(t=>{
+  const mq=!q||t.name?.toLowerCase().includes(q)||t.billing_email?.toLowerCase().includes(q);
+  const mp=!plan||t.plan===plan;
+  const ms=!status||t.subscription_status===status||(status==='active'&&t.active)||(status==='suspended'&&!t.active);
+  return mq&&mp&&ms;
+  }));
+}
+async function suspend(id){if(!confirm('Suspend this tenant?'))return;await post(`/admin/tenants/${id}/suspend`,{reason:'Admin action'});loadTenants();}
+async function unsuspend(id){await post(`/admin/tenants/${id}/unsuspend`,{});loadTenants();}
+async function changePlan(id,current){
+  const plan=prompt(`Change plan (current: ${current})\nEnter: starter, growth, or enterprise`);
+  if(!plan||!['starter','growth','enterprise'].includes(plan))return;
+  await put(`/admin/tenants/${id}/plan`,{plan});loadTenants();
+}
+
+// PLAN LIMITS
+const LIMIT_KEYS=['alert_channels','alert_rules','agents','integrations','audit_export_days','analytics_export_days','retention_days','team_members','ml_profiles','hitl_policies'];
+const LIMIT_LABELS={alert_channels:'Alert channels',alert_rules:'Alert rules',agents:'Agents',integrations:'Integrations',audit_export_days:'Audit export days',analytics_export_days:'Analytics export days',retention_days:'Retention days',team_members:'Team members',ml_profiles:'ML profiles',hitl_policies:'HITL policies'};
+let selectedLimitTenant='';
+async function loadPlanLimits(){
+  const [limits, tenantsData, readiness]=await Promise.all([api('/admin/plan-limits'), api('/admin/tenants'), api('/admin/enterprise-readiness')]);
+  const plans=limits?.plans||[];
+  const blocks=limits?.recentBlocks||[];
+  allTenants=tenantsData?.tenants||allTenants||[];
+  const oc=document.getElementById('pl-overrides-count');if(oc)oc.textContent=allTenants.filter(t=>t.plan==='enterprise').length;
+  const bc=document.getElementById('pl-block-count');if(bc)bc.textContent=blocks.length;
+  const sel=document.getElementById('limit-tenant-select');
+  if(sel){
+  const current=sel.value||selectedLimitTenant;
+  sel.innerHTML='<option value="">Select tenant...</option>'+allTenants.map(t=>`<option value="${t.id}">${t.name}  ${t.plan}</option>`).join('');
+  if(current)sel.value=current;
+  }
+  const tbody=document.getElementById('plan-limits-body');
+  if(tbody)tbody.innerHTML=plans.map(p=>`<tr>
+  <td><span class="badge ${p.plan==='enterprise'?'bp':p.plan==='growth'?'bi':'bg'}">${p.plan}</span></td>
+  <td class="mono">${p.max_alert_channels}</td><td class="mono">${p.max_alert_rules}</td><td class="mono">${p.max_agents}</td><td class="mono">${p.max_integrations}</td>
+  <td class="mono">${p.max_audit_export_days}/${p.max_analytics_export_days}d</td><td class="mono">${p.max_retention_days}d</td><td class="mono">${p.max_team_members}</td><td class="mono">${p.max_ml_profiles}/${p.max_hitl_policies}</td>
+  <td><button class="btn db" onclick="editDefaultPlanLimit('${p.plan}')">Edit</button></td>
+  </tr>`).join('')||'<tr><td colspan="10" class="empty">No plan limits found.</td></tr>';
+  const blockBody=document.getElementById('plan-limit-blocks-body');
+  if(blockBody)blockBody.innerHTML=blocks.slice(0,30).map(b=>`<tr>
+  <td class="mono" style="color:var(--t3)">${new Date(b.created_at).toLocaleString()}</td>
+  <td style="color:var(--tx)">${b.tenant_name||b.tenant_id||''}</td>
+  <td><span class="badge br">${(b.feature_key||'').replace(/_/g,' ')}</span></td>
+  <td class="mono">${b.used} / ${b.limit_value}</td>
+  <td class="mono" style="font-size:9px;color:var(--t2)">${b.action||''}</td>
+  </tr>`).join('')||'<tr><td colspan="5" class="empty">No plan-limit blocks yet.</td></tr>';
+  const readinessCard=document.getElementById('enterprise-readiness-card');
+  if(readinessCard){
+  const checks=readiness?.checks||[];
+  readinessCard.innerHTML=`<div class="ch"><span class="ct">Enterprise readiness controls</span><span class="badge ${readiness?.ready?'bg':'br'}">${readiness?.ready?'ready':'needs attention'}</span></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
+  ${checks.map(c=>`<div style="border:1px solid var(--b);border-radius:7px;padding:9px;background:rgba(255,255,255,.02)">
+  <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:11px;color:var(--tx)">${c.key.replace(/_/g,' ')}</span><span class="badge ${c.ok?'bg':'br'}">${c.ok?'ok':'missing'}</span></div>
+  <div class="mono" style="color:var(--t3);margin-top:5px">${c.detail}</div>
+  </div>`).join('')||'<div class="empty">Readiness check unavailable.</div>'}
+  </div>`;
+  }
+  if(sel?.value)loadTenantLimitDetail(sel.value);
+}
+async function editDefaultPlanLimit(plan){
+  const d=await api('/admin/plan-limits');
+  const row=(d?.plans||[]).find(p=>p.plan===plan);
+  if(!row)return alert('Plan limits not loaded');
+  const body={};
+  for(const key of LIMIT_KEYS){
+  const current=row['max_'+key];
+  const value=prompt(`${plan}: ${LIMIT_LABELS[key]}`, current);
+  if(value===null)return;
+  body[key]=parseInt(value,10);
+  if(!Number.isFinite(body[key])||body[key]<0)return alert('Invalid limit for '+LIMIT_LABELS[key]);
+  }
+  await put('/admin/plan-limits/'+plan, body);
+  loadPlanLimits();
+}
+async function loadTenantLimitDetail(tenantId){
+  selectedLimitTenant=tenantId;
+  const box=document.getElementById('tenant-limit-detail');
+  if(!box)return;
+  if(!tenantId){box.innerHTML='<div class="empty">Select a tenant to edit custom enterprise limits.</div>';return;}
+  box.innerHTML='<div class="empty">Loading tenant limits...</div>';
+  const d=await api('/admin/tenant-limits/'+tenantId);
+  if(!d){box.innerHTML='<div class="empty">Could not load tenant limits.</div>';return;}
+  const overrides={};(d.overrides||[]).forEach(o=>overrides[o.feature_key]=o.limit_value);
+  box.innerHTML=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--tx)">${d.tenant.name}</div><div class="mono" style="color:var(--t3);margin-top:3px">${d.tenant.billing_email||d.tenant.id}  plan ${d.plan}</div></div>
+  <table class="tbl"><thead><tr><th>Feature</th><th>Usage</th><th>Effective</th><th>Override</th><th>Actions</th></tr></thead>
+  <tbody>${LIMIT_KEYS.map(k=>{const used=d.usage?.[k]||0;const lim=d.limits?.[k]||0;const pct=lim?Math.min(100,Math.round((used/lim)*100)):0;const has=overrides[k]!=null;return`<tr>
+  <td style="color:var(--tx)">${LIMIT_LABELS[k]}</td>
+  <td><div style="display:flex;align-items:center;gap:6px"><div class="ub-track"><div class="ub-fill" style="width:${pct}%;background:${pct>=95?'var(--r)':pct>=80?'var(--a)':'var(--g)'}"></div></div><span class="mono">${used}</span></div></td>
+  <td class="mono">${lim}</td>
+  <td>${has?`<span class="badge ba">${overrides[k]}</span>`:'<span style="color:var(--t3)">plan default</span>'}</td>
+  <td style="display:flex;gap:4px;padding:8px 0"><button class="btn db" onclick="setTenantOverride('${tenantId}','${k}',${lim})">Set</button>${has?`<button class="btn dr" onclick="resetTenantOverride('${tenantId}','${k}')">Reset</button>`:''}</td>
+  </tr>`}).join('')}</tbody></table>
+  <div style="margin-top:12px;font-size:10px;color:var(--t2)">Recent blocks: ${(d.blocks||[]).slice(0,3).map(b=>`${b.feature_key} (${b.used}/${b.limit_value})`).join(', ')||'none'}</div>`;
+}
+async function setTenantOverride(tenantId,key,current){
+  const value=prompt(`Custom limit for ${LIMIT_LABELS[key]}`, current);
+  if(value===null)return;
+  const n=parseInt(value,10);
+  if(!Number.isFinite(n)||n<0)return alert('Enter a non-negative number');
+  await put(`/admin/tenant-limits/${tenantId}/overrides`,{featureKey:key,limitValue:n});
+  loadTenantLimitDetail(tenantId);
+}
+async function resetTenantOverride(tenantId,key){
+  if(!confirm('Reset override for '+LIMIT_LABELS[key]+'?'))return;
+  await del(`/admin/tenant-limits/${tenantId}/overrides/${key}`);
+  loadTenantLimitDetail(tenantId);
+}
+
+//  REVENUE 
+async function loadRevenue(){
+  const d=await api('/admin/stats');
+  if(!d)return;
+  loadUnitEconomics();
+  window.ADMIN_PLAN_PRICES=d.planPrices||window.ADMIN_PLAN_PRICES||{starter:49,growth:199,enterprise:999};
+  const mrr=d.revenue?.mrr_usd||0;
+  const prices=window.ADMIN_PLAN_PRICES;
+  const pricingLabel=d.revenue?.pricing_source==='defaults'?'default pricing':'configured pricing';
+  document.getElementById('rev-metrics').innerHTML=`
+  <div class="mc cg"><div class="ml">MRR</div><div class="mv" style="color:var(--g)">$${Math.round(mrr).toLocaleString()}</div><div class="ms">${pricingLabel}</div></div>
+  <div class="mc cb"><div class="ml">ARR</div><div class="mv" style="color:var(--bl)">$${Math.round(mrr*12).toLocaleString()}</div><div class="ms">annual run rate</div></div>
+  <div class="mc ca"><div class="ml">ARPU</div><div class="mv" style="color:var(--a)">$${d.revenue?.total_tenants>0?Math.round(mrr/d.revenue.total_tenants):0}</div><div class="ms">avg per tenant</div></div>
+  <div class="mc cp"><div class="ml">Overage</div><div class="mv" style="color:var(--pu)">$${Math.round(d.revenue?.overage_usd||0)}</div><div class="ms">this month</div></div>`;
+  document.getElementById('rev-body').innerHTML=(d.tenants||[]).map(p=>{const price=prices[p.plan]||0;const active=parseInt(p.active??p.cnt??0, 10);const rev=price*active;const pct=mrr>0?Math.round((rev/mrr)*100):0;return`<tr><td><span class="badge ${p.plan==='enterprise'?'bp':p.plan==='growth'?'bi':'bg'}">${p.plan}</span></td><td>${p.cnt}</td><td class="mono">$${price}/mo</td><td style="color:var(--g);font-weight:500">$${rev.toLocaleString()}</td><td class="mono">${pct}%</td></tr>`;}).join('');
+  const infra=800;const starterPrice=prices.starter||49;const growthPrice=prices.growth||199;const enterprisePrice=prices.enterprise||999;const breakEven=Math.ceil(infra/starterPrice);
+  document.getElementById('breakeven').innerHTML=`<div style="margin-bottom:8px;font-weight:500;color:var(--tx)">Break-even analysis</div>
+  <div style="margin-bottom:4px">Est. infra cost: <span style="color:var(--r)">~$${infra}/mo</span></div>
+  <div style="margin-bottom:4px">Break-even (Starter): <span style="color:var(--a)">${breakEven} customers</span></div>
+  <div style="margin-bottom:4px">Break-even (Growth): <span style="color:var(--a)">${Math.ceil(infra/growthPrice)} customers</span></div>
+  <div style="margin-bottom:12px">Break-even (Enterprise): <span style="color:var(--g)">${Math.max(1,Math.ceil(infra/enterprisePrice))} customer</span></div>
+  <div style="color:var(--g);font-weight:500">Current MRR: $${Math.round(mrr).toLocaleString()}  ${mrr>infra?`<span style="color:var(--g)">PROFITABLE (+$${Math.round(mrr-infra)}/mo)</span>`:`<span style="color:var(--r)">Need $${Math.round(infra-mrr)} more</span>`}</div>`;
+}
+
+async function loadUnitEconomics(){
+  const d=await api('/admin/unit-economics');
+  const fmt=(n)=>'$'+Math.round(Number(n||0)).toLocaleString();
+  const pct=(n)=>`${Math.round(Number(n||0))}%`;
+  const totals=d?.totals||{};
+  const rows=d?.rows||[];
+  const margin=Number(totals.marginPct||0);
+  const marginColor=margin>=70?'var(--g)':margin>=40?'var(--a)':'var(--r)';
+  const summary=document.getElementById('unit-econ-summary');
+  if(summary)summary.innerHTML=`
+  <div class="mc cg"><div class="ml">Gross margin</div><div class="mv" style="color:${marginColor}">${pct(margin)}</div><div class="ms">all plans</div></div>
+  <div class="mc cb"><div class="ml">Revenue</div><div class="mv" style="color:var(--bl)">${fmt(totals.revenueUsd)}</div><div class="ms">month to date</div></div>
+  <div class="mc ca"><div class="ml">COGS</div><div class="mv" style="color:var(--a)">${fmt(totals.totalCogsUsd)}</div><div class="ms">allocated cost</div></div>
+  <div class="mc cp"><div class="ml">Profit</div><div class="mv" style="color:${Number(totals.grossProfitUsd||0)>=0?'var(--g)':'var(--r)'}">${fmt(totals.grossProfitUsd)}</div><div class="ms">gross profit</div></div>`;
+  const body=document.getElementById('unit-econ-body');
+  if(body)body.innerHTML=rows.map(r=>{
+  const m=Number(r.marginPct||0);
+  const col=m>=70?'var(--g)':m>=40?'var(--a)':'var(--r)';
+  return `<tr>
+  <td><span class="badge ${r.plan==='enterprise'?'bp':r.plan==='growth'?'bi':'bg'}">${r.plan}</span></td>
+  <td class="mono">${r.tenants} (${r.activeTenants} active)</td>
+  <td class="mono">${Number(r.apiCallsMonth||0).toLocaleString()}</td>
+  <td style="color:var(--g);font-weight:500">${fmt(r.revenueUsd)}</td>
+  <td class="mono">${fmt(r.totalCogsUsd)}</td>
+  <td style="color:${Number(r.grossProfitUsd||0)>=0?'var(--g)':'var(--r)'}">${fmt(r.grossProfitUsd)}</td>
+  <td class="mono" style="color:${col};font-weight:700">${pct(m)}</td>
+  </tr>`;
+  }).join('')||'<tr><td colspan="7" class="empty">No unit economics data yet.</td></tr>';
+  const a=d?.assumptions||{};
+  const ass=document.getElementById('unit-econ-assumptions');
+  if(ass)ass.textContent=`Assumptions: base infra ${fmt(a.baseInfraUsd)}/mo, variable cost ${fmt(a.costPer1kCallsUsd)} per 1K calls, support ${fmt(a.supportCostPerTenantUsd)}/tenant, payment fee ${((a.paymentFeeRate||0)*100).toFixed(1)}% + ${fmt(a.paymentFixedFeeUsd)}. Configure with UNIT_* env vars.`;
+}
+
+//  INVOICES 
+async function loadInvoices(){
+  const d=await api('/admin/invoices');
+  const rows=d?.invoices||[];
+  const paid30=rows.filter(r=>r.status==='paid'&&new Date(r.paid_at)>new Date(Date.now()-30*86400000)).reduce((s,r)=>s+parseFloat(r.amount_usd||0),0);
+  const overdue=rows.filter(r=>r.status!=='paid').reduce((s,r)=>s+parseFloat(r.amount_usd||0),0);
+  const overage=rows.filter(r=>r.stripe_invoice_id?.startsWith('overage_')).reduce((s,r)=>s+parseFloat(r.amount_usd||0),0);
+  document.getElementById('invoice-stats').innerHTML=`
+  <div class="mc cg"><div class="ml">Paid (30d)</div><div class="mv" style="color:var(--g)">$${Math.round(paid30).toLocaleString()}</div><div class="ms">collected</div></div>
+  <div class="mc cr"><div class="ml">Overdue</div><div class="mv" style="color:var(--r)">$${Math.round(overdue).toLocaleString()}</div><div class="ms">unpaid</div></div>
+  <div class="mc ca"><div class="ml">Overage (30d)</div><div class="mv" style="color:var(--a)">$${Math.round(overage).toLocaleString()}</div><div class="ms">extra charges</div></div>`;
+  document.getElementById('invoices-body').innerHTML=rows.slice(0,50).map(r=>{const isOverage=r.stripe_invoice_id?.startsWith('overage_');return`<tr><td style="color:var(--tx)">${r.tenant_name||r.tenant_id||''}</td><td class="mono" style="font-size:9px;color:var(--t3)">${(r.stripe_invoice_id||'').slice(0,20)}</td><td style="color:var(--g)">$${parseFloat(r.amount_usd||0).toFixed(2)}</td><td><span class="badge ${isOverage?'ba':'bi'}">${isOverage?'overage':'subscription'}</span></td><td><span class="badge ${r.status==='paid'?'bg':'br'}">${r.status}</span></td><td class="mono" style="color:var(--t3)">${r.paid_at?new Date(r.paid_at).toLocaleDateString():''}</td></tr>`;}).join('')||'<tr><td colspan="6" class="empty">No invoices found</td></tr>';
+}
+
+//  SECURITY EVENTS 
+async function loadSecurityEvents(){
+  const d=await api('/admin/security-events?hours=24');
+  const events=d?.events||[];
+  const byType=(t)=>events.filter(e=>e.event_type?.includes(t)).length;
+  document.getElementById('sec-anomalies').textContent=byType('anomaly');
+  document.getElementById('sec-injections').textContent=byType('injection');
+  document.getElementById('sec-hitl').textContent=byType('hitl');
+  document.getElementById('sec-dlp').textContent=byType('dlp');
+  document.getElementById('sec-body').innerHTML=events.slice(0,50).map(e=>{const sev=e.severity||'medium';const sevBadge=sev==='critical'?'br':sev==='high'?'ba':'bi';return`<tr><td class="mono" style="color:var(--t3)">${new Date(e.triggered_at||e.created_at).toLocaleTimeString()}</td><td style="color:var(--tx)">${e.tenant_name||''}</td><td class="mono" style="color:var(--a)">${(e.agent_id||'').slice(0,10)}</td><td><span class="badge ba">${(e.event_type||'').replace(/_/g,' ')}</span></td><td class="mono">${e.tool_name||''}</td><td><span class="badge ${sevBadge}">${sev}</span></td><td style="font-size:10px;color:var(--t2);max-width:200px">${(e.message||'').slice(0,60)}</td></tr>`;}).join('')||'<tr><td colspan="7" class="empty">No security events in last 24h.</td></tr>';
+}
+
+//  GLOBAL ANOMALIES 
+async function loadGlobalAnomalies(){
+  const d=await api('/admin/anomalies?hours=24');
+  const events=d?.events||[];
+  const blocked=events.filter(e=>e.action==='block').length;
+  const flagged=events.filter(e=>e.action==='flag').length;
+  const avgScore=events.length?Math.round(events.reduce((s,e)=>s+parseInt(e.score||0, 10),0)/events.length):0;
+  const fp=events.filter(e=>e.is_false_positive==='true').length;
+  document.getElementById('ag-blocked').textContent=blocked;
+  document.getElementById('ag-flagged').textContent=flagged;
+  document.getElementById('ag-avg-score').textContent=avgScore;
+  document.getElementById('ag-fp').textContent=fp;
+  document.getElementById('anomaly-global-body').innerHTML=events.slice(0,40).map(e=>{const sc=parseInt(e.score||0, 10);const col=sc>=80?'var(--r)':sc>=40?'var(--a)':'var(--g)';return`<tr><td class="mono" style="color:var(--t3)">${new Date(e.created_at).toLocaleTimeString()}</td><td style="color:var(--tx)">${e.tenant_name||''}</td><td class="mono" style="color:var(--a)">${(e.agent_id||'').slice(0,10)}</td><td class="mono">${e.tool_name}</td><td style="color:${col};font-weight:500">${sc}</td><td><span class="badge ${e.action==='block'?'br':e.action==='flag'?'ba':'bg'}">${e.action}</span></td><td style="font-size:10px;color:var(--t2)">${e.confidence||''}</td></tr>`;}).join('')||'<tr><td colspan="7" class="empty">No anomaly events in last 24h.</td></tr>';
+  const agentCounts={};events.forEach(e=>{const k=`${e.tenant_name||'?'}/${(e.agent_id||'').slice(0,8)}`;agentCounts[k]=(agentCounts[k]||0)+1;});
+  const top=Object.entries(agentCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('top-anomalous-agents').innerHTML=top.length?top.map(([k,c])=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid var(--b)"><span class="mono">${k}</span><span style="color:var(--r)">${c} flags</span></div>`).join(''):'<span style="color:var(--t3)">No anomalous agents in 24h</span>';
+}
+
+//  GLOBAL INJECTIONS 
+async function loadGlobalInjections(){
+  const d=await api('/admin/injection-log?hours=24');
+  const events=d?.events||[];
+  const pc={};events.forEach(e=>{pc[e.pattern_name]=(pc[e.pattern_name]||0)+1;});
+  const top=Object.entries(pc).sort((a,b)=>b[1]-a[1])[0];
+  const affectedTenants=new Set(events.map(e=>e.tenant_id)).size;
+  const agents=new Set(events.map(e=>e.agent_id)).size;
+  document.getElementById('ig-total').textContent=events.length;
+  document.getElementById('ig-pattern').textContent=top?top[0].replace(/_/g,' '):'';
+  document.getElementById('ig-tenants').textContent=affectedTenants;
+  document.getElementById('ig-agents').textContent=agents;
+  document.getElementById('inj-global-body').innerHTML=events.slice(0,40).map(e=>`<tr><td class="mono" style="color:var(--t3)">${new Date(e.created_at).toLocaleTimeString()}</td><td style="color:var(--tx)">${e.tenant_name||''}</td><td class="mono" style="color:var(--a)">${(e.agent_id||'').slice(0,10)}</td><td class="mono">${e.tool_name||''}</td><td><span class="badge br">${(e.pattern_name||'').replace(/_/g,' ')}</span></td><td class="mono" style="color:var(--t3)">${e.arg_key||''}</td><td style="font-size:10px;color:var(--r)">${(e.flagged_text||'').slice(0,50)}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">No injection events in last 24h.</td></tr>';
+}
+
+//  HITL QUEUE 
+async function loadHitlQueue(){
+  const d=await api('/admin/hitl-queue');
+  const all=d?.requests||[];
+  const pending=all.filter(r=>r.status==='pending');
+  const approved7d=all.filter(r=>r.status==='approved').length;
+  const denied7d=all.filter(r=>r.status==='denied').length;
+  const decided=all.filter(r=>r.decision_ms>0);
+  const avgMs=decided.length?Math.round(decided.reduce((s,r)=>s+parseInt(r.decision_ms||0, 10),0)/decided.length/60000):0;
+  document.getElementById('hq-pending').textContent=pending.length;
+  document.getElementById('hq-approved').textContent=approved7d;
+  document.getElementById('hq-denied').textContent=denied7d;
+  document.getElementById('hq-avg-time').textContent=avgMs>0?avgMs+'m':'';
+  document.getElementById('hitl-queue-body').innerHTML=pending.slice(0,20).map(r=>{const age=Math.round((Date.now()-new Date(r.created_at).getTime())/60000);const ttl=15-age;return`<tr><td style="color:var(--tx)">${r.tenant_name||''}</td><td class="mono" style="color:var(--a)">${(r.agent_id||'').slice(0,10)}</td><td class="mono">${r.tool_name}</td><td><span class="badge ${r.risk==='high'?'br':r.risk==='medium'?'ba':'bi'}">${r.risk}</span></td><td style="font-size:10px;color:var(--t2)">${r.reason||''}</td><td class="mono" style="color:${ttl<5?'var(--r)':'var(--a)'}">${age}m (${Math.max(0,ttl)}m left)</td><td style="display:flex;gap:4px;padding:8px 0"><button class="btn dg" onclick="adminDecideHitl('${r.id}','approved')">Approve</button><button class="btn dr" onclick="adminDecideHitl('${r.id}','denied')">Deny</button></td></tr>`;}).join('')||'<tr><td colspan="7" class="empty">No pending HITL requests across all tenants.</td></tr>';
+}
+async function adminDecideHitl(id,decision){await post(`/api/hitl/${id}/decide`,{decision,decidedBy:'admin'});loadHitlQueue();}
+
+//  REGISTRY 
+async function loadRegistry(){
+  const d=await api('/admin/registry');
+  document.getElementById('reg-body').innerHTML=(d?.servers||[]).map(s=>`<tr><td style="color:var(--tx);font-weight:500">${s.name}<div class="mono" style="color:var(--t3);font-size:9px">${s.description||''}</div></td><td><span class="badge ${s.trust_level==='trusted'?'bg':s.trust_level==='suspicious'?'ba':s.trust_level==='blocked'?'br':'bi'}">${s.trust_level}</span></td><td class="mono" style="color:${s.trust_score>70?'var(--g)':s.trust_score>40?'var(--a)':'var(--r)'}">${s.trust_score}/100</td><td class="mono" style="color:${parseInt(s.report_count, 10)>0?'var(--r)':'var(--t3)'}">${s.report_count}</td><td class="mono">${s.owner_email||s.owner_team||s.author||'unassigned'}</td><td class="mono">${parseInt(s.allowed_tenant_count||0,10)} tenants / ${parseInt(s.allowed_agent_count||0,10)} agents</td><td style="display:flex;gap:4px;padding:8px 0;flex-wrap:wrap"><button class="btn dg" onclick="trustServer('${s.id}','trusted',90)">Trust</button><button class="btn dr" onclick="trustServer('${s.id}','blocked',0)">Block</button><button class="btn db" onclick="editRegistryMetadata('${s.id}')">Metadata</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">No servers registered</td></tr>';
+}
+async function trustServer(id,level,score){
+  const reason=prompt(`Reason for marking server ${level}:`,'security review');
+  if(reason===null)return;
+  await fetch(`/admin/registry/${id}/trust`,{method:'PUT',headers:H,body:JSON.stringify({trustLevel:level,trustScore:score,verified:level==='trusted',reason})});
+  loadRegistry();
+}
+async function editRegistryMetadata(id){
+  const ownerEmail=prompt('Owner email:','security@example.com'); if(ownerEmail===null)return;
+  const ownerTeam=prompt('Owner team:','security'); if(ownerTeam===null)return;
+  const allowedTenants=prompt('Allowed tenant IDs, comma separated. Blank means all tenants:',''); if(allowedTenants===null)return;
+  const allowedAgents=prompt('Allowed agent IDs, comma separated. Blank means all agents:',''); if(allowedAgents===null)return;
+  await fetch(`/admin/registry/${id}/metadata`,{method:'PUT',headers:H,body:JSON.stringify({ownerEmail,ownerTeam,allowedTenants,allowedAgents,schemaValidation:'available'})});
+  loadRegistry();
+}
+
+//  ML PROFILES 
+async function loadMLProfiles(){
+  const d=await api('/admin/ml-profiles');
+  const profiles=d?.profiles||[];
+  const bootstrap=profiles.filter(p=>parseInt(p.sample_size||0, 10)<20).length;
+  const high=profiles.filter(p=>parseInt(p.sample_size||0, 10)>=500).length;
+  document.getElementById('mlg-profiles').textContent=profiles.length;
+  document.getElementById('mlg-bootstrap').textContent=bootstrap;
+  document.getElementById('mlg-high').textContent=high;
+  document.getElementById('mlg-body').innerHTML=profiles.slice(0,30).map(p=>{const ss=parseInt(p.sample_size||0, 10);const conf=ss>=500?'high':ss>=100?'medium':ss>=20?'partial':'bootstrap';const confBadge=conf==='high'?'bg':conf==='medium'?'bi':conf==='partial'?'ba':'br';const tools=p.top_tools?JSON.parse(p.top_tools).slice(0,3).join(', '):'';return`<tr><td style="color:var(--tx)">${p.tenant_name||''}</td><td class="mono" style="color:var(--a)">${(p.agent_id||'').slice(0,12)}</td><td class="mono">${ss.toLocaleString()}</td><td><span class="badge ${confBadge}">${conf}</span></td><td class="mono" style="font-size:9px;color:var(--t3)">${tools}</td><td class="mono" style="color:var(--t3)">${p.last_updated?new Date(p.last_updated).toLocaleDateString():''}</td></tr>`;}).join('')||'<tr><td colspan="6" class="empty">No ML profiles yet. Generated automatically from audit_log after 20+ calls.</td></tr>';
+}
+async function triggerRebuild(){const r=await post('/admin/ml-profiles/rebuild',{});alert(r?.triggered?'Global ML profile rebuild triggered. Takes ~2 minutes.':'Rebuild failed: '+(r?.error||'unknown'));}
+
+//  GEO ADMIN 
+async function loadGeoAdmin(){
+  const d=await api('/admin/geo-blocks');
+  const rows=d?.rules||[];
+  const blocked=rows.reduce((s,r)=>s+parseInt(r.blocked_24h||0, 10),0);
+  const countries=new Set(rows.map(r=>r.country_code)).size;
+  const tenants=new Set(rows.map(r=>r.tenant_id)).size;
+  document.getElementById('geo-admin-blocked').textContent=blocked.toLocaleString();
+  document.getElementById('geo-admin-countries').textContent=countries;
+  document.getElementById('geo-admin-tenants').textContent=tenants;
+  document.getElementById('geo-admin-body').innerHTML=rows.map(r=>`<tr><td style="color:var(--tx)">${r.tenant_name||''}</td><td><span class="badge ${r.mode==='allow'?'bg':'br'}">${r.country_code}</span></td><td><span class="badge ${r.mode==='allow'?'bg':'br'}">${r.mode}</span></td><td style="color:var(--t2)">${r.description||''}</td><td class="mono" style="color:${parseInt(r.blocked_24h||0, 10)>0?'var(--r)':'var(--t3)'}">${parseInt(r.blocked_24h||0, 10).toLocaleString()}</td><td class="mono" style="color:var(--t3)">${new Date(r.created_at).toLocaleDateString()}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No geo rules configured across any tenant.</td></tr>';
+}
+
+//  RATE LIMITS ADMIN 
+async function loadRateLimitsAdmin(){
+  const d=await api('/admin/tool-rate-limits');
+  const rows=d?.limits||[];
+  const throttled=rows.reduce((s,r)=>s+parseInt(r.throttled_1h||0, 10),0);
+  const blocked=rows.reduce((s,r)=>s+parseInt(r.blocked_1h||0, 10),0);
+  document.getElementById('rla-rules').textContent=rows.length;
+  document.getElementById('rla-throttled').textContent=throttled.toLocaleString();
+  document.getElementById('rla-blocked').textContent=blocked.toLocaleString();
+  document.getElementById('rla-body').innerHTML=rows.map(r=>`<tr><td style="color:var(--tx)">${r.tenant_name||'global'}</td><td class="mono">${r.tool_name}</td><td class="mono">${r.max_calls}</td><td class="mono">${r.window_seconds>=3600?r.window_seconds/3600+'h':r.window_seconds+'s'}</td><td><span class="badge ${r.action==='block'?'br':r.action==='throttle'?'ba':'bi'}">${r.action}</span></td><td class="mono" style="color:${(parseInt(r.blocked_1h||0, 10)+parseInt(r.throttled_1h||0, 10))>0?'var(--a)':'var(--t3)'}">${parseInt(r.throttled_1h||0, 10)} throttled  ${parseInt(r.blocked_1h||0, 10)} blocked</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No tool rate limits across any tenant.</td></tr>';
+}
+
+//  SYSTEM 
+async function loadSystem(){
+  const d=await api('/admin/system');
+  if(!d){document.getElementById('sys-card').innerHTML='<div class="empty">Cannot reach admin API</div>';return;}
+  const mem=d.memoryUsage||{};
+  document.getElementById('sys-card').innerHTML=`
+  <div class="ch"><span class="ct">System diagnostics</span><button class="btn" onclick="loadSystem()">Refresh</button></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+  <div>
+  <div style="font-size:11px;font-weight:500;color:var(--tx);margin-bottom:10px">Runtime</div>
+  ${[['Node',d.nodeVersion],['Uptime',`${Math.floor((d.uptime||0)/3600)}h ${Math.floor(((d.uptime||0)%3600)/60)}m`],['DB size',d.dbSize||''],['Heap',`${Math.round((mem.heapUsed||0)/1e6)}MB / ${Math.round((mem.heapTotal||0)/1e6)}MB`],['RSS',`${Math.round((mem.rss||0)/1e6)}MB`]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid var(--b)"><span style="color:var(--t2)">${k}</span><span class="mono" style="color:var(--tx)">${v}</span></div>`).join('')}
+  </div>
+  <div>
+  <div style="font-size:11px;font-weight:500;color:var(--tx);margin-bottom:10px">Top tools (7d)</div>
+  ${(d.topTools7d||[]).slice(0,8).map(t=>`<div style="display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid var(--b)"><span class="mono">${t.tool_name}</span><span style="color:var(--g)">${parseInt(t.calls, 10).toLocaleString()}</span></div>`).join('')||'<div style="color:var(--t3);font-size:11px">No tool data yet</div>'}
+  </div>
+  <div>
+  <div style="font-size:11px;font-weight:500;color:var(--tx);margin-bottom:10px">Cron jobs</div>
+  ${[['Baseline rebuild','hourly'],['Alert evaluation','60s'],['Key expiry cleanup','5m'],['Trial expiry','6h'],['Overage billing','daily midnight'],['ML profile rebuild','2h'],['Webhook retry','60s'],['Agent graph','6h']].map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid var(--b)"><span style="color:var(--t2)">${k}</span><span class="mono" style="color:var(--g)">${v}</span></div>`).join('')}
+  </div>
+  </div>`;
+}
+
+sv('overview');
+</script>
+</body>
+</html>

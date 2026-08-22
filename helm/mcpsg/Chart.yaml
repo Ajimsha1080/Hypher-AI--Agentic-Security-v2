@@ -1,0 +1,21 @@
+apiVersion: v2
+name: mcpsg
+description: MCP Security Gateway — Zero-trust security proxy for AI agents
+type: application
+version: 3.0.0
+appVersion: "3.0.0"
+home: https://mcpsecurity.dev
+sources:
+  - https://github.com/antigravity/mcp-security-gateway
+maintainers:
+  - name: Antigravity
+    email: engineering@mcpsecurity.dev
+keywords:
+  - mcp
+  - security
+  - ai-agents
+  - zero-trust
+  - gateway
+  - enterprise
+annotations:
+  category: Security

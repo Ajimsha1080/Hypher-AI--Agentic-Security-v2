@@ -9413,14 +9413,25 @@ if(typeof connectWebSocket==='function')connectWebSocket();
 </div>
 
 
+function getAgentApiEndpoint(path) {
+  const p = path.startsWith('/') ? path : '/' + path;
+  if (location.origin && !location.origin.startsWith('file:')) {
+    return p;
+  }
+  return 'http://localhost:8000' + p;
+}
+
 async function loadHitlQueueUI() {
   const container = document.getElementById('hitl-queue-container');
   if (!container) return;
   container.innerHTML = '<div style="color:var(--t2);font-size:12px;padding:10px;text-align:center">Fetching pending approvals...</div>';
   try {
-    const resp = await fetch('http://localhost:8000/api/v1/approvals', {
-      headers: { 'X-Tenant-ID': 'tenant_default' }
-    });
+    let resp;
+    try {
+      resp = await fetch(getAgentApiEndpoint('/api/v1/approvals'), { headers: { 'X-Tenant-ID': 'tenant_default' } });
+    } catch {
+      resp = await fetch('http://localhost:8000/api/v1/approvals', { headers: { 'X-Tenant-ID': 'tenant_default' } });
+    }
     const items = await resp.json();
     if (!items || !items.length) {
       container.innerHTML = '<div style="color:var(--t2);font-size:12px;text-align:center;padding:20px">No pending high-risk tool approval requests</div>';
@@ -9451,11 +9462,20 @@ async function loadHitlQueueUI() {
 async function decideHitlUI(approvalId, decision) {
   try {
     const endpoint = decision === 'approve' ? 'approve' : 'reject';
-    const resp = await fetch(`http://localhost:8000/api/v1/approvals/${approvalId}/${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': 'tenant_default' },
-      body: JSON.stringify({ approver_id: 'admin_user', comment: `Decision ${decision} from dashboard UI` })
-    });
+    let resp;
+    try {
+      resp = await fetch(getAgentApiEndpoint(`/api/v1/approvals/${approvalId}/${endpoint}`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': 'tenant_default' },
+        body: JSON.stringify({ approver_id: 'admin_user', comment: `Decision ${decision} from dashboard UI` })
+      });
+    } catch {
+      resp = await fetch(`http://localhost:8000/api/v1/approvals/${approvalId}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': 'tenant_default' },
+        body: JSON.stringify({ approver_id: 'admin_user', comment: `Decision ${decision} from dashboard UI` })
+      });
+    }
     const data = await resp.json();
     alert(`Operation ${decision.toUpperCase()}ED! Decision recorded.`);
     loadHitlQueueUI();

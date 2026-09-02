@@ -30,6 +30,27 @@ http
       return;
     }
 
+    if (pathname.startsWith('/api/v1/')) {
+      const proxyReq = http.request(
+        {
+          hostname: '127.0.0.1',
+          port: 8000,
+          path: req.url,
+          method: req.method,
+          headers: { ...req.headers, host: '127.0.0.1:8000' },
+        },
+        (proxyRes) => {
+          res.writeHead(proxyRes.statusCode, proxyRes.headers);
+          proxyRes.pipe(res);
+        }
+      );
+      proxyReq.on('error', () => {
+        sendJson(res, { error: 'Agent Runtime Python service on port 8000 is unavailable. Run: python -m uvicorn agent_runtime.main:app --port 8000' }, 502);
+      });
+      req.pipe(proxyReq);
+      return;
+    }
+
     if (url.pathname === '/api/dashboard/metrics') {
       sendJson(res, {
         summary: {

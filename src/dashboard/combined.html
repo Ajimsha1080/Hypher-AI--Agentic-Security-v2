@@ -1140,10 +1140,11 @@ async function executeAgentTaskUI() {
     const resp = await fetch(getAgentApiEndpoint('/api/v1/agent/run'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': 'tenant_default' },
-      body: JSON.stringify({ prompt, session_id: 'sess_prod_001', user_id: 'admin_user' })
+      body: JSON.stringify({ task: prompt, prompt, session_id: 'sess_prod_001', user_id: 'admin_user' })
     });
     const data = await resp.json();
     out.textContent = JSON.stringify(data, null, 2);
+    loadAll();
   } catch (err) {
     out.textContent = '❌ Execution Error: ' + err.message;
   }

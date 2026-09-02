@@ -212,10 +212,28 @@ class HITLApprovalManager:
             except Exception:
                 pass
 
-        item = _in_memory_approvals.get(approval_id)
-        if item and item["tenant_id"] == tenant_id:
-            return ApprovalRecord(**item)
-        return None
+    async def list_pending_approvals(self, tenant_id: str) -> List[ApprovalRecord]:
+        db = await self.get_db()
+        if db:
+            try:
+                rows = await db.fetch(
+                    """
+                    SELECT approval_id, request_id, tenant_id, user_id, session_id, agent_name, tool_name, tool_arguments, risk_level, reason, status, approver_id, approval_comment, created_at, decided_at
+                    FROM agent_approvals
+                    WHERE tenant_id = $1 AND status = 'PENDING'
+                    ORDER BY created_at DESC
+                    """,
+                    tenant_id,
+                )
+                return [self._to_record(row) for row in rows]
+            except Exception:
+                pass
+
+        results = []
+        for item in _in_memory_approvals.values():
+            if item["tenant_id"] == tenant_id and item["status"] == "PENDING":
+                results.append(ApprovalRecord(**item))
+        return results
 
     def _to_record(self, row: Any) -> ApprovalRecord:
         return ApprovalRecord(

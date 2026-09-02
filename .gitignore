@@ -125,3 +125,10 @@ dump.rdb
 
 # Benchmark results
 benchmark-results-*.json
+
+# Python & Temporary files
+__pycache__/
+*.pyc
+.pytest_cache/
+*.bak
+tmp/

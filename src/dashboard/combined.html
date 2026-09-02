@@ -9413,6 +9413,57 @@ if(typeof connectWebSocket==='function')connectWebSocket();
 </div>
 
 
+async function loadHitlQueueUI() {
+  const container = document.getElementById('hitl-queue-container');
+  if (!container) return;
+  container.innerHTML = '<div style="color:var(--t2);font-size:12px;padding:10px;text-align:center">Fetching pending approvals...</div>';
+  try {
+    const resp = await fetch('http://localhost:8000/api/v1/approvals', {
+      headers: { 'X-Tenant-ID': 'tenant_default' }
+    });
+    const items = await resp.json();
+    if (!items || !items.length) {
+      container.innerHTML = '<div style="color:var(--t2);font-size:12px;text-align:center;padding:20px">No pending high-risk tool approval requests</div>';
+      return;
+    }
+    container.innerHTML = items.map(item => `
+      <div style="background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span style="font-weight:700;color:var(--a);font-size:13px">[${item.risk_level}] ${item.tool_name}</span>
+            <span class="mono" style="color:var(--t3);font-size:11px;margin-left:8px">Req ID: ${item.request_id}</span>
+          </div>
+          <span class="badge bw2">PENDING APPROVAL</span>
+        </div>
+        <div style="font-size:12px;color:var(--tx)">Reason: ${item.reason || 'High-risk tool execution requires human clearance'}</div>
+        <div style="font-size:11px;color:var(--t2);font-family:'Geist Mono',monospace">Arguments: ${JSON.stringify(item.tool_arguments)}</div>
+        <div style="display:flex;gap:10px;margin-top:6px">
+          <button class="btn" style="background:var(--g);color:#fff;border:none;padding:6px 14px;font-weight:600;cursor:pointer" onclick="decideHitlUI('${item.approval_id}', 'approve')">✅ Approve Operation</button>
+          <button class="btn" style="background:var(--r);color:#fff;border:none;padding:6px 14px;font-weight:600;cursor:pointer" onclick="decideHitlUI('${item.approval_id}', 'reject')">❌ Reject Operation</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = `<div style="color:var(--r);font-size:12px;padding:10px">Failed to load approvals: ${err.message}</div>`;
+  }
+}
+
+async function decideHitlUI(approvalId, decision) {
+  try {
+    const endpoint = decision === 'approve' ? 'approve' : 'reject';
+    const resp = await fetch(`http://localhost:8000/api/v1/approvals/${approvalId}/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': 'tenant_default' },
+      body: JSON.stringify({ approver_id: 'admin_user', comment: `Decision ${decision} from dashboard UI` })
+    });
+    const data = await resp.json();
+    alert(`Operation ${decision.toUpperCase()}ED! Decision recorded.`);
+    loadHitlQueueUI();
+  } catch (err) {
+    alert('Decision error: ' + err.message);
+  }
+}
+
 function loadKeys(){}
 function loadUsage(){}
 function loadAudit(){}

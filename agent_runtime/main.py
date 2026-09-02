@@ -289,6 +289,13 @@ async def execute_tool(
 
 # ── 5. Human-in-the-Loop (HITL) Approvals ─────────────────────────────
 
+@app.get("/api/v1/approvals", response_model=List[ApprovalRecord])
+async def list_pending_approvals(
+    x_tenant_id: str = Header(default=settings.DEFAULT_TENANT_ID, alias="X-Tenant-ID"),
+):
+    return await hitl_manager.list_pending_approvals(tenant_id=x_tenant_id)
+
+
 @app.post("/api/v1/approvals/{id}/approve", response_model=ApprovalRecord)
 async def approve_task(
     id: str = Path(...),

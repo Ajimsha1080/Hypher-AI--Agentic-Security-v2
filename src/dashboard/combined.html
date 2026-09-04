@@ -945,6 +945,7 @@ body {
       </div>
       <div class="card">
         <div class="card-title">Discovered Agent Instances</div>
+        <div class="card-subtext">This does not grant tool access to unapproved agents</div>
         <div id="shadow-results" style="margin-top:10px; font-size:12px; color:var(--text-muted);">
           <div class="mono">✓ 6 Registered Authorized Agents</div>
           <div class="mono" style="color:var(--accent-green); margin-top:6px;">✓ 0 Rogue / Unapproved Shadow Instances Detected</div>
@@ -1558,6 +1559,32 @@ function exportSoc2UI() {
   a.href = URL.createObjectURL(blob);
   a.download = 'hypher_soc2_compliance_report.json';
   a.click();
+}
+
+// Enterprise boundary & security helpers
+function isLocalDevDashboard() {
+  return location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+}
+const ALLOW_LOCAL_TENANT_FALLBACK=isLocalDevDashboard();
+const LOCAL_DEV_TENANT_ID = 'c71bee1e-5d56-4f65-9495-b580dafb90f6';
+function tenantHeader() {
+  return ALLOW_LOCAL_TENANT_FALLBACK?LOCAL_DEV_TENANT_ID:'';
+}
+function currentUserRole() {
+  return 'viewer';
+}
+const H = { 'Content-Type': 'application/json' };
+function alertHeaders(){return {...H,'X-Tenant-ID':tenantHeader(),'X-Admin-Role':currentUserRole()};}
+function updateAdminButton() {
+  const adminBtn = document.getElementById('admin-toggle-btn') || { style: {} };
+  const canOpenAdmin = false;
+  adminBtn.style.display=canOpenAdmin?'':'none';
+}
+function applyAdminPricing(stats) {
+  if (stats && stats.planPrices) {
+    window.ADMIN_PLAN_PRICES=stats.planPrices;
+    if (stats.pricing_source==='defaults') console.log('Using default pricing');
+  }
 }
 </script>
 </body>
